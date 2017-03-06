@@ -24,7 +24,7 @@ Preflex provides the following facilities:
 
 ## Usage
 
-Leiningen coordinates: `[preflex "0.1.0-SNAPSHOT"]` (not on Clojars yet)
+Leiningen coordinates: `[preflex "0.1.0-alpha1"]`
 
 See [documentation](doc/intro.md)
 

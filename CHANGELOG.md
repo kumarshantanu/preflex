@@ -11,7 +11,7 @@ All notable changes to this project will be documented in this file. This change
 - Hystrix emulation
   - Command
 
-## 0.1.0 / 2017-March-?? [Unreleased]
+## 0.1.0-alpha1 / 2017-March-07
 ### Added
 - Resilience primitives in namespace `preflex.core`
 - Metrics primitives in namespace `preflex.metrics`
