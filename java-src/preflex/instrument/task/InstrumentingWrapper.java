@@ -27,7 +27,7 @@ public class InstrumentingWrapper<V> implements Wrapper<V> {
         eh.before();
         try {
             T result = task.call();
-            eh.onReturn(result);
+            eh.onResult(result);
             return result;
         } catch (Exception e) {
             eh.onThrow(e);
@@ -44,7 +44,7 @@ public class InstrumentingWrapper<V> implements Wrapper<V> {
         eh.before();
         try {
             T result = task.call();
-            eh.onReturn(result);
+            eh.onResult(result);
             return result;
         } catch (Exception e) {
             eh.onThrow(e);
@@ -61,7 +61,7 @@ public class InstrumentingWrapper<V> implements Wrapper<V> {
         eh.before();
         try {
             T result = task.call();
-            eh.onReturn(result);
+            eh.onResult(result);
             return result;
         } catch (Exception e) {
             eh.onThrow(e);
@@ -78,7 +78,7 @@ public class InstrumentingWrapper<V> implements Wrapper<V> {
         eh.before();
         try {
             T result = task.call();
-            eh.onReturn(result);
+            eh.onResult(result);
             return result;
         } catch (Exception e) {
             eh.onThrow(e);
@@ -94,7 +94,7 @@ public class InstrumentingWrapper<V> implements Wrapper<V> {
         eh.before();
         try {
             T result = task.call();
-            eh.onReturn(result);
+            eh.onResult(result);
             return result;
         } catch (Exception e) {
             eh.onThrow(e);

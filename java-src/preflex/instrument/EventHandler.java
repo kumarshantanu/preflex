@@ -15,7 +15,7 @@ public interface EventHandler {
     public static final EventHandler NOP = new EventHandler() {
         public void before()                 { /* do nothing */ }
         public void onReturn()               { /* do nothing */ }
-        public void onReturn(Object result)  { /* do nothing */ }
+        public void onResult(Object result)  { /* do nothing */ }
         public void onThrow(Exception error) { /* do nothing */ }
         public void after()                  { /* do nothing */ }
     };
@@ -34,7 +34,7 @@ public interface EventHandler {
      * Triggered after a code returning a value, throwing no exception.
      * @param result result value
      */
-    public void onReturn(Object result);
+    public void onResult(Object result);
 
     /**
      * Triggered after a code throws exception.
