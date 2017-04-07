@@ -4,7 +4,7 @@
  *   Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0.php)
  *   which can be found in the file LICENSE at the root of this distribution.
  *   By using this software in any fashion, you are agreeing to be bound by
- * 	 the terms of this license.
+ *   the terms of this license.
  *   You must not remove this notice, or any other, from this software.
  **/
 
@@ -15,15 +15,15 @@ import java.util.concurrent.Callable;
 
 public interface ConcurrentEventFactory<ThreadPoolEvent, FutureEvent, ExecutionEvent> {
 
-	public ThreadPoolEvent runnableSubmissionEvent(Runnable command);
-	public <V> ThreadPoolEvent callableSubmissionEvent(Callable<V> command);
-	public <V> ThreadPoolEvent callableCollectionSubmissionEvent(Collection<? extends Callable<V>> callables);
-	public ThreadPoolEvent shutdownEvent();
+    public ThreadPoolEvent runnableSubmissionEvent(Runnable command);
+    public <V> ThreadPoolEvent callableSubmissionEvent(Callable<V> command);
+    public <V> ThreadPoolEvent callableCollectionSubmissionEvent(Collection<? extends Callable<V>> callables);
+    public ThreadPoolEvent shutdownEvent();
 
-	public <V> ExecutionEvent callableExecutionEvent(Callable<V> task);
-	public ExecutionEvent runnableExecutionEvent(Runnable task);
+    public <V> ExecutionEvent callableExecutionEvent(Callable<V> task);
+    public ExecutionEvent runnableExecutionEvent(Runnable task);
 
-	public FutureEvent cancellationEvent();
-	public FutureEvent resultFetchEvent();
+    public FutureEvent cancellationEvent();
+    public FutureEvent resultFetchEvent();
 
 }
