@@ -12,6 +12,13 @@ package preflex.instrument;
 
 public interface EventHandlerFactory<E> {
 
+    public static final EventHandlerFactory<?> NOP = new EventHandlerFactory<Object>() {
+        @Override
+        public EventHandler createHandler(Object event) {
+            return EventHandler.NOP;
+        }
+    };
+
     public EventHandler createHandler(E event);
 
 }
