@@ -12,6 +12,7 @@ package preflex.instrument.concurrent;
 
 import java.util.Collection;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 
 public interface ConcurrentEventFactory<ThreadPoolEvent, FutureEvent, ExecutionEvent> {
 
@@ -23,7 +24,7 @@ public interface ConcurrentEventFactory<ThreadPoolEvent, FutureEvent, ExecutionE
     public <V> ExecutionEvent callableExecutionEvent(Callable<V> task);
     public ExecutionEvent runnableExecutionEvent(Runnable task);
 
-    public FutureEvent cancellationEvent();
-    public FutureEvent resultFetchEvent();
+    public <V> FutureEvent cancellationEvent(Future<V> future);
+    public <V> FutureEvent resultFetchEvent(Future<V> future);
 
 }

@@ -36,8 +36,8 @@ public class FutureWrapper<V, FutureEvent> implements Future<V> {
 
     @Override
     public boolean cancel(final boolean mayInterruptIfRunning) {
-        FutureEvent event = eventFactory.cancellationEvent();
-        CallTask<Boolean> task = new CallTask<Boolean>() {
+        final FutureEvent event = eventFactory.cancellationEvent(orig);
+        final CallTask<Boolean> task = new CallTask<Boolean>() {
             @Override
             public Boolean call() {
                 return orig.cancel(mayInterruptIfRunning);
@@ -58,8 +58,8 @@ public class FutureWrapper<V, FutureEvent> implements Future<V> {
 
     @Override
     public V get() throws InterruptedException, ExecutionException {
-        FutureEvent event = eventFactory.resultFetchEvent();
-        CallTask2<V, InterruptedException, ExecutionException> task =
+        final FutureEvent event = eventFactory.resultFetchEvent(orig);
+        final CallTask2<V, InterruptedException, ExecutionException> task =
                 new CallTask2<V, InterruptedException, ExecutionException>() {
             @Override
             public V call() throws InterruptedException, ExecutionException {
@@ -72,8 +72,8 @@ public class FutureWrapper<V, FutureEvent> implements Future<V> {
     @Override
     public V get(final long timeout, final TimeUnit unit)
             throws InterruptedException, ExecutionException, TimeoutException {
-        FutureEvent event = eventFactory.resultFetchEvent();
-        CallTask3<V, InterruptedException, ExecutionException, TimeoutException> task =
+        final FutureEvent event = eventFactory.resultFetchEvent(orig);
+        final CallTask3<V, InterruptedException, ExecutionException, TimeoutException> task =
                 new CallTask3<V, InterruptedException, ExecutionException, TimeoutException>() {
             @Override
             public V call() throws InterruptedException, ExecutionException, TimeoutException {
