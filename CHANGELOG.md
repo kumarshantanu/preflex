@@ -16,7 +16,7 @@ All notable changes to this project will be documented in this file. This change
 ### Added
 
 - Instrumentation
-  - [TODO] Thread pool
+  - Thread pool
 
 
 ### Changed
