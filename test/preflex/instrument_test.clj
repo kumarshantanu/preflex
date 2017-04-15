@@ -36,40 +36,16 @@
                 @(.submit ^ExecutorService instru-pool ^Runnable #(do 10))))
           (is (= 10
                 @(.submit ^ExecutorService instru-pool ^Callable #(do 10))))))))
-  (testing ""
+  (testing "shared context instrumentation"
     (with-active-thread-pool [^ExecutorService thread-pool (core/make-bounded-thread-pool 10 10)]
       (let [instru-pool (instru/instrument-thread-pool thread-pool
-                          {:on-callable-submit  {:before (fn [{:keys [callable] :as event}]
-                                                           (instru/with-shared-context [context callable]
-                                                             (vswap! context assoc :submit-time (System/nanoTime))))}
-                           :on-runnable-submit  {:before (fn [{:keys [runnable] :as event}]
-                                                           (instru/with-shared-context [context runnable]
-                                                             (vswap! context assoc :submit-time (System/nanoTime))))}
-                           :on-callable-execute {:before (fn [{:keys [callable] :as event}]
-                                                           (instru/with-shared-context [context callable]
-                                                             (vswap! context assoc :exec-time (System/nanoTime))))
-                                                 :after  (fn [{:keys [callable] :as event}]
-                                                           (instru/with-shared-context [context callable]
-                                                             (let [{:keys [^long submit-time ^long exec-time]
-                                                                    :as ctx-map} @context]
-                                                               (printf "Queue-time: %dns, Exec-time-ns: %dns\n"
-                                                                 (- exec-time submit-time)
-                                                                 (- (System/nanoTime) exec-time))
-                                                               (vswap! context assoc :end-time (System/nanoTime)))))}
-                           :on-runnable-execute {:before (fn [{:keys [runnable] :as event}]
-                                                           (instru/with-shared-context [context runnable]
-                                                             (vswap! context assoc :exec-time (System/nanoTime))))
-                                                 :after  (fn [{:keys [runnable] :as event}]
-                                                           (instru/with-shared-context [context runnable]
-                                                             (let [{:keys [^long submit-time ^long exec-time]
-                                                                    :as ctx-map} @context]
-                                                               (printf "Queue-time: %dns, Exec-time-ns: %dns\n"
-                                                                 (- exec-time submit-time)
-                                                                 (- (System/nanoTime) exec-time))
-                                                               (vswap! context assoc :end-time (System/nanoTime)))))}
-                           })]
+                          (-> instru/shared-context-event-handlers
+                            (assoc
+                              :callable-decorator  instru/shared-context-callable-decorator
+                              :runnable-decorator  instru/shared-context-runnable-decorator
+                              :future-decorator    instru/shared-context-future-decorator)
+                            (dissoc :on-future-cancel :on-future-result)))]
         (is (nil?
               @(.submit ^ExecutorService instru-pool ^Runnable #(do 10))))
         (is (= 10
-              @(.submit ^ExecutorService instru-pool ^Callable #(do 10))))))
-   ))
+              @(.submit ^ExecutorService instru-pool ^Callable #(do 10))))))))

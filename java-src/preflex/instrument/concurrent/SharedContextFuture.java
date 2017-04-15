@@ -17,38 +17,38 @@ import java.util.concurrent.TimeoutException;
 
 import preflex.instrument.SharedContext;
 
-public class DefaultDecoratedFuture<T, V> extends SharedContext<T> implements Future<V> {
+public class SharedContextFuture<T, V> extends SharedContext<T> implements Future<V> {
 
-    private final Future<V> future;
+    private final Future<V> orig;
 
-    public DefaultDecoratedFuture(Future<V> future, T context) {
+    public SharedContextFuture(Future<V> future, T context) {
         super(context);
-        this.future = future;
-    }
+        this.orig = future;
+	}
 
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
-        return future.cancel(mayInterruptIfRunning);
+        return orig.cancel(mayInterruptIfRunning);
     }
 
     @Override
     public V get() throws InterruptedException, ExecutionException {
-        return future.get();
+        return orig.get();
     }
 
     @Override
     public V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-        return future.get(timeout, unit);
+        return orig.get(timeout, unit);
     }
 
     @Override
     public boolean isCancelled() {
-        return future.isCancelled();
+        return orig.isCancelled();
     }
 
     @Override
     public boolean isDone() {
-        return future.isDone();
+        return orig.isDone();
     }
 
 }

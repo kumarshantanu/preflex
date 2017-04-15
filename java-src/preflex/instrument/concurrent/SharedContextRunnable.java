@@ -12,18 +12,18 @@ package preflex.instrument.concurrent;
 
 import preflex.instrument.SharedContext;
 
-public class DefaultDecoratedRunnable<T> extends SharedContext<T> implements Runnable {
+public class SharedContextRunnable<T> extends SharedContext<T> implements Runnable {
 
-    private final Runnable runnable;
+    private final Runnable orig;
 
-    public DefaultDecoratedRunnable(Runnable runnable, T context) {
+    public SharedContextRunnable(Runnable runnable, T context) {
         super(context);
-        this.runnable = runnable;
+        this.orig = runnable;
     }
 
     @Override
     public void run() {
-        runnable.run();
+        orig.run();
     }
 
 }

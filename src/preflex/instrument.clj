@@ -10,7 +10,8 @@
 (ns preflex.instrument
   (:require
     [preflex.invokable :as invokable]
-    [preflex.internal  :as in])
+    [preflex.internal  :as in]
+    [preflex.util      :as u])
   (:import
     [java.util.concurrent Callable ExecutorService Future]
     [preflex.instrument EventHandler EventHandlerFactory SharedContext]
@@ -19,14 +20,14 @@
      CallableWrapper
      ConcurrentEventFactory
      ConcurrentEventHandlerFactory
-     DefaultDecoratedCallable
-     DefaultDecoratedFuture
-     DefaultDecoratedRunnable
      ExecutorServiceWrapper
      FutureDecorator
      FutureWrapper
      RunnableDecorator
-     RunnableWrapper]))
+     RunnableWrapper
+     SharedContextCallable
+     SharedContextRunnable
+     SharedContextFuture]))
 
 
 (defn make-event-handler
@@ -124,28 +125,87 @@
 (def default-thread-pool-event-generator
   "The default thread-pool event generator."
   (make-thread-pool-event-generator
-    {:runnable-submit  (fn [task]  {:event-context :thread-pool   :event-type :runnable-submit  :runnable task})
-     :callable-submit  (fn [task]  {:event-context :thread-pool   :event-type :callable-submit  :callable task})
+    {:callable-submit  (fn [task]  {:event-context :thread-pool   :event-type :callable-submit  :callable task})
      :multiple-submit  (fn [tasks] {:event-context :thread-pool   :event-type :multiple-submit  :multiple tasks})
+     :runnable-submit  (fn [task]  {:event-context :thread-pool   :event-type :runnable-submit  :runnable task})
      :shutdown-request (fn []      {:event-context :thread-pool   :event-type :shutdown-request})
-     :runnable-execute (fn [task]  {:event-context :thread-exec   :event-type :runnable-execute :runnable task})
      :callable-execute (fn [task]  {:event-context :thread-exec   :event-type :callable-execute :callable task})
+     :runnable-execute (fn [task]  {:event-context :thread-exec   :event-type :runnable-execute :runnable task})
      :future-cancel    (fn [fut]   {:event-context :thread-future :event-type :future-cancel    :future   fut})
      :future-result    (fn [fut]   {:event-context :thread-future :event-type :future-result    :future   fut})}))
 
 
-(def default-callable-decorator
+(def shared-context-callable-decorator
   (reify CallableDecorator
-    (wrap [this callable] (DefaultDecoratedCallable. callable (volatile! {})))))
+    (wrap [this callable] (SharedContextCallable. callable (volatile! {})))))
 
 
-(def default-runnable-decorator
+(def shared-context-runnable-decorator
   (reify RunnableDecorator
-    (wrap [this runnable] (DefaultDecoratedRunnable. runnable (volatile! {})))))
+    (wrap [this runnable] (SharedContextRunnable. runnable (volatile! {})))))
 
-(def default-future-decorator
+
+(def shared-context-future-decorator
   (reify FutureDecorator
-    (wrap [this future-obj] (DefaultDecoratedFuture. future-obj (volatile! {})))))
+    (wrap [this future-obj] (SharedContextFuture. future-obj (volatile! {})))))
+
+
+(defn shared-context-update-event
+  [event event-k f]
+  (when (contains? event event-k)
+    (with-shared-context [context (get event event-k)]
+      (f context))))
+
+
+(def shared-context-event-handlers
+  (let [after-submit   (fn [event-k event]
+                         (shared-context-update-event event event-k
+                           (fn [volatile-context]
+                             (vswap! volatile-context
+                               (fn [{:keys [^long submit-begin-ns] :as context}]
+                                 (let [now-ns (u/now-nanos)]
+                                   (assoc context
+                                     :submit-end-ns      now-ns
+                                     :duration-submit-ns (unchecked-subtract now-ns submit-begin-ns))))))))
+        before-execute (fn [event-k event]
+                         (shared-context-update-event event event-k
+                           (fn [volatile-context]
+                             (vswap! volatile-context
+                               (fn [{:keys [^long submit-begin-ns ^long submit-end-ns] :as context}]
+                                 (let [now-ns (u/now-nanos)]
+                                   (assoc context
+                                     :execute-begin-ns   now-ns
+                                     :duration-queue-ns  (unchecked-subtract now-ns
+                                                           ;; submit-end-ns may not be updated (race condition)
+                                                           ^long (or submit-end-ns submit-begin-ns)))))))))
+        after-execute  (fn [event-k event]
+                         (shared-context-update-event event event-k
+                           (fn [volatile-context]
+                             (vswap! volatile-context
+                               (fn [{:keys [^long submit-begin-ns ^long execute-begin-ns] :as context}]
+                                 (let [now-ns (u/now-nanos)]
+                                   (assoc context
+                                     :execute-end-ns now-ns
+                                     :duration-execute-ns  (unchecked-subtract now-ns execute-begin-ns)
+                                     :duration-response-ns (unchecked-subtract now-ns submit-begin-ns))))))))
+        assoc-context  (fn [event-k context-k event]
+                         (shared-context-update-event event event-k
+                           (fn [volatile-context]
+                             (vswap! volatile-context
+                               (fn [context]
+                                 (assoc context context-k (u/now-nanos)))))))]
+    {:on-callable-submit  {:before (partial assoc-context  :callable :submit-begin-ns)
+                           :after  (partial after-submit   :callable)}
+     :on-runnable-submit  {:before (partial assoc-context  :runnable :submit-begin-ns)
+                           :after  (partial after-submit   :runnable)}
+     :on-callable-execute {:before (partial before-execute :callable)
+                           :after  (partial after-execute  :callable)}
+     :on-runnable-execute {:before (partial before-execute :runnable)
+                           :after  (partial after-execute  :runnable)}
+     :on-future-cancel    {:before (partial assoc-context  :future   :cancel-begin-ns)
+                           :after  (partial assoc-context  :future   :cancel-end-ns)}
+     :on-future-result    {:before (partial assoc-context  :future   :result-begin-ns)
+                           :after  (partial assoc-context  :future   :result-end-ns)}}))
 
 
 (defn instrument-thread-pool
@@ -189,9 +249,9 @@
                                         on-future-cancel
                                         on-future-result]
                                  :or {;; decorators
-                                      callable-decorator default-callable-decorator ; CallableDecorator/IDENTITY
-                                      runnable-decorator default-runnable-decorator ; RunnableDecorator/IDENTITY
-                                      future-decorator   default-future-decorator ; FutureDecorator/IDENTITY
+                                      callable-decorator CallableDecorator/IDENTITY
+                                      runnable-decorator RunnableDecorator/IDENTITY
+                                      future-decorator   FutureDecorator/IDENTITY
                                       ;; event generator
                                       event-generator    default-thread-pool-event-generator
                                       ;; event handlers

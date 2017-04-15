@@ -14,18 +14,18 @@ import java.util.concurrent.Callable;
 
 import preflex.instrument.SharedContext;
 
-public class DefaultDecoratedCallable<T, V> extends SharedContext<T> implements Callable<V> {
+public class SharedContextCallable<T, V> extends SharedContext<T> implements Callable<V> {
 
-    private final Callable<V> callable;
+    private final Callable<V> orig;
 
-    public DefaultDecoratedCallable(Callable<V> callable, T context) {
+    public SharedContextCallable(Callable<V> callable, T context) {
         super(context);
-        this.callable = callable;
+        this.orig = callable;
     }
 
     @Override
     public V call() throws Exception {
-        return callable.call();
+        return orig.call();
     }
 
 }
