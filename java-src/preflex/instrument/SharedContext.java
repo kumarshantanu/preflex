@@ -10,24 +10,12 @@
 
 package preflex.instrument;
 
-import java.util.UUID;
-
 public class SharedContext<T> {
 
-    public final String id;
     public final T context;
 
-    public SharedContext(String id, T context) {
-        this.id = id;
-        this.context = context;
-    }
-
     public SharedContext(T context) {
-        this(UUID.randomUUID().toString(), context);
-    }
-
-    public String getId() {
-        return id;
+        this.context = context;
     }
 
     public T getContext() {
