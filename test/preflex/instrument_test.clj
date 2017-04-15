@@ -14,8 +14,7 @@
     [preflex.instrument :as instru]
     [preflex.internal   :as in])
   (:import
-    [java.util.concurrent ExecutorService]
-    [preflex.instrument SharedContext]))
+    [java.util.concurrent ExecutorService]))
 
 
 (defmacro with-active-thread-pool
@@ -40,38 +39,34 @@
   (testing ""
     (with-active-thread-pool [^ExecutorService thread-pool (core/make-bounded-thread-pool 10 10)]
       (let [instru-pool (instru/instrument-thread-pool thread-pool
-                          {:pool-event-handler-factory
-                           (instru/event-handler-opts->factory
-                             {:before (fn [event]
-                                        (case (:event-type event)
-                                          :runnable-submit (let [context (.getContext ^SharedContext (:runnable event))]
-                                                             (vswap! context assoc :submit-time (System/nanoTime)))
-                                          :callable-submit (let [context (.getContext ^SharedContext (:callable event))]
-                                                             (vswap! context assoc :submit-time (System/nanoTime)))))})
-                           :exec-event-handler-factory
-                           (instru/event-handler-opts->factory
-                             {:before (fn [event]
-                                        (case (:event-type event)
-                                          :runnable-execute (let [context (.getContext ^SharedContext (:runnable event))]
-                                                             (vswap! context assoc :exec-time (System/nanoTime)))
-                                          :callable-execute (let [context (.getContext ^SharedContext (:callable event))]
-                                                             (vswap! context assoc :exec-time (System/nanoTime)))))
-                              :after  (fn [event]
-                                        (case (:event-type event)
-                                          :runnable-execute (let [context (.getContext ^SharedContext (:runnable event))
-                                                                  {:keys [^long submit-time ^long exec-time]
-                                                                   :as ctx-map} @context]
-                                                              (printf "Queue-time: %dns, Exec-time-ns: %dns\n"
-                                                                (- exec-time submit-time)
-                                                                (- (System/nanoTime) exec-time))
-                                                             (vswap! context assoc :end-time (System/nanoTime)))
-                                          :callable-execute (let [context (.getContext ^SharedContext (:callable event))
-                                                                  {:keys [^long submit-time ^long exec-time]
-                                                                   :as ctx-map} @context]
-                                                              (printf "Queue-time: %dns, Exec-time-ns: %dns\n"
-                                                                (- exec-time submit-time)
-                                                                (- (System/nanoTime) exec-time))
-                                                             (vswap! context assoc :end-time (System/nanoTime)))))})
+                          {:on-callable-submit  {:before (fn [{:keys [callable] :as event}]
+                                                           (instru/with-shared-context [context callable]
+                                                             (vswap! context assoc :submit-time (System/nanoTime))))}
+                           :on-runnable-submit  {:before (fn [{:keys [runnable] :as event}]
+                                                           (instru/with-shared-context [context runnable]
+                                                             (vswap! context assoc :submit-time (System/nanoTime))))}
+                           :on-callable-execute {:before (fn [{:keys [callable] :as event}]
+                                                           (instru/with-shared-context [context callable]
+                                                             (vswap! context assoc :exec-time (System/nanoTime))))
+                                                 :after  (fn [{:keys [callable] :as event}]
+                                                           (instru/with-shared-context [context callable]
+                                                             (let [{:keys [^long submit-time ^long exec-time]
+                                                                    :as ctx-map} @context]
+                                                               (printf "Queue-time: %dns, Exec-time-ns: %dns\n"
+                                                                 (- exec-time submit-time)
+                                                                 (- (System/nanoTime) exec-time))
+                                                               (vswap! context assoc :end-time (System/nanoTime)))))}
+                           :on-runnable-execute {:before (fn [{:keys [runnable] :as event}]
+                                                           (instru/with-shared-context [context runnable]
+                                                             (vswap! context assoc :exec-time (System/nanoTime))))
+                                                 :after  (fn [{:keys [runnable] :as event}]
+                                                           (instru/with-shared-context [context runnable]
+                                                             (let [{:keys [^long submit-time ^long exec-time]
+                                                                    :as ctx-map} @context]
+                                                               (printf "Queue-time: %dns, Exec-time-ns: %dns\n"
+                                                                 (- exec-time submit-time)
+                                                                 (- (System/nanoTime) exec-time))
+                                                               (vswap! context assoc :end-time (System/nanoTime)))))}
                            })]
         (is (nil?
               @(.submit ^ExecutorService instru-pool ^Runnable #(do 10))))

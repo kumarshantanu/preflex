@@ -18,6 +18,7 @@
      CallableDecorator
      CallableWrapper
      ConcurrentEventFactory
+     ConcurrentEventHandlerFactory
      DefaultDecoratedCallable
      DefaultDecoratedFuture
      DefaultDecoratedRunnable
@@ -62,6 +63,16 @@
   [opts]
   (reify EventHandlerFactory
     (createHandler [this event] (make-event-handler event opts))))
+
+
+(defmacro with-shared-context
+  "Given a symbol (to bind to wrapped context) and preflex.instrument.SharedContext instance, evaluate body of code in
+  the binding context."
+  [[context holder] & body]
+  (in/expected symbol? "a symbol to bind the context to" context)
+  `(let [^SharedContext holder# ~holder
+         ~context (.getContext holder#)]
+     ~@body))
 
 
 ;; ---------- thread pool instrumentation ----------
@@ -141,13 +152,22 @@
   "Given a thread pool, an event generator and optional event handlers instrument the thread pool such that the events
   are raised and handled at the appropriate time. Options are as follows:
 
-  :event-generator              instance of preflex.instrument.concurrent.ConcurrentEventFactory
-  :runnable-decorator           nil or instance of preflex.instrument.concurrent.RunnableDecorator
-  :callable-decorator           nil or instance of preflex.instrument.concurrent.CallableDecorator
-  :future-decorator             nil or instance of preflex.instrument.concurrent.FutureDecorator
-  :pool-event-handler-factory   event handler for pool events, instance of preflex.instrument.EventHandlerFactory
-  :exec-event-handler-factory   event handler for exec events, instance of preflex.instrument.EventHandlerFactory
-  :future-event-handler-factory event handler for future events, instance of preflex.instrument.EventHandlerFactory
+  :event-generator    instance of preflex.instrument.concurrent.ConcurrentEventFactory
+
+  ;; decorators
+  :runnable-decorator instance of preflex.instrument.concurrent.RunnableDecorator
+  :callable-decorator instance of preflex.instrument.concurrent.CallableDecorator
+  :future-decorator   instance of preflex.instrument.concurrent.FutureDecorator
+
+  ;; event handlers
+  on-callable-submit  instance of preflex.instrument.EventHandlerFactory or `event-handler-opts->factory` arg
+  on-multiple-submit  instance of preflex.instrument.EventHandlerFactory or `event-handler-opts->factory` arg
+  on-runnable-submit  instance of preflex.instrument.EventHandlerFactory or `event-handler-opts->factory` arg
+  on-shutdown-request instance of preflex.instrument.EventHandlerFactory or `event-handler-opts->factory` arg
+  on-callable-execute instance of preflex.instrument.EventHandlerFactory or `event-handler-opts->factory` arg
+  on-runnable-execute instance of preflex.instrument.EventHandlerFactory or `event-handler-opts->factory` arg
+  on-future-cancel    instance of preflex.instrument.EventHandlerFactory or `event-handler-opts->factory` arg
+  on-future-result    instance of preflex.instrument.EventHandlerFactory or `event-handler-opts->factory` arg
 
   See also:
   event-handler-opts->factory
@@ -159,9 +179,14 @@
                                         ;; event generator
                                         event-generator
                                         ;; event handlers
-                                        pool-event-handler-factory
-                                        exec-event-handler-factory
-                                        future-event-handler-factory]
+                                        on-callable-submit
+                                        on-multiple-submit
+                                        on-runnable-submit
+                                        on-shutdown-request
+                                        on-callable-execute
+                                        on-runnable-execute
+                                        on-future-cancel
+                                        on-future-result]
                                  :or {;; decorators
                                       runnable-decorator default-runnable-decorator ; RunnableDecorator/IDENTITY
                                       callable-decorator default-callable-decorator ; CallableDecorator/IDENTITY
@@ -169,15 +194,28 @@
                                       ;; event generator
                                       event-generator    default-thread-pool-event-generator
                                       ;; event handlers
-                                      pool-event-handler-factory   EventHandlerFactory/NOP
-                                      exec-event-handler-factory   EventHandlerFactory/NOP
-                                      future-event-handler-factory EventHandlerFactory/NOP}
+                                      on-callable-submit  EventHandlerFactory/NOP
+                                      on-multiple-submit  EventHandlerFactory/NOP
+                                      on-runnable-submit  EventHandlerFactory/NOP
+                                      on-shutdown-request EventHandlerFactory/NOP
+                                      on-callable-execute EventHandlerFactory/NOP
+                                      on-runnable-execute EventHandlerFactory/NOP
+                                      on-future-cancel    EventHandlerFactory/NOP
+                                      on-future-result    EventHandlerFactory/NOP}
                                  :as opts}]
-  (ExecutorServiceWrapper. thread-pool event-generator
-    ;; event-handler factories
-    pool-event-handler-factory
-    exec-event-handler-factory
-    future-event-handler-factory
+  (ExecutorServiceWrapper.
+    thread-pool
+    event-generator
+    (let [as-event-handler-factory #(if (instance? EventHandlerFactory %) % (event-handler-opts->factory %))]
+      (ConcurrentEventHandlerFactory.
+        (as-event-handler-factory on-callable-submit)
+        (as-event-handler-factory on-multiple-submit)
+        (as-event-handler-factory on-runnable-submit)
+        (as-event-handler-factory on-shutdown-request)
+        (as-event-handler-factory on-callable-execute)
+        (as-event-handler-factory on-runnable-execute)
+        (as-event-handler-factory on-future-cancel)
+        (as-event-handler-factory on-future-result)))
     ;; decorators
     runnable-decorator
     callable-decorator

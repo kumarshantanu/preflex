@@ -25,13 +25,16 @@ public class FutureWrapper<V, FutureEvent> implements Future<V> {
 
     private final Future<V> orig;
     private final ConcurrentEventFactory<?, FutureEvent, ?> eventFactory;
-    private final InstrumentingWrapper<FutureEvent> wrapper;
+    private final InstrumentingWrapper<FutureEvent> futureCancelWrapper;
+    private final InstrumentingWrapper<FutureEvent> futureResultWrapper;
 
     public FutureWrapper(Future<V> future, ConcurrentEventFactory<?, FutureEvent, ?> eventFactory,
-            EventHandlerFactory<FutureEvent> eventHandlerFactory) {
+            EventHandlerFactory<FutureEvent> futureCancelEventHandlerFactory,
+            EventHandlerFactory<FutureEvent> futureResultEventHandlerFactory) {
         this.orig = future;
         this.eventFactory = eventFactory;
-        this.wrapper = new InstrumentingWrapper<>(eventHandlerFactory);
+        this.futureCancelWrapper = new InstrumentingWrapper<>(futureCancelEventHandlerFactory);
+        this.futureResultWrapper = new InstrumentingWrapper<>(futureResultEventHandlerFactory);
     }
 
     @Override
@@ -43,7 +46,7 @@ public class FutureWrapper<V, FutureEvent> implements Future<V> {
                 return orig.cancel(mayInterruptIfRunning);
             }
         };
-        return wrapper.call(event, task);
+        return futureCancelWrapper.call(event, task);
     }
 
     @Override
@@ -66,7 +69,7 @@ public class FutureWrapper<V, FutureEvent> implements Future<V> {
                 return orig.get();
             }
         };
-        return wrapper.call(event, task, InterruptedException.class, ExecutionException.class);
+        return futureResultWrapper.call(event, task, InterruptedException.class, ExecutionException.class);
     }
 
     @Override
@@ -80,7 +83,8 @@ public class FutureWrapper<V, FutureEvent> implements Future<V> {
                 return orig.get(timeout, unit);
             }
         };
-        return wrapper.call(event, task, InterruptedException.class, ExecutionException.class, TimeoutException.class);
+        return futureResultWrapper.call(event, task,
+                InterruptedException.class, ExecutionException.class, TimeoutException.class);
     }
 
 }
