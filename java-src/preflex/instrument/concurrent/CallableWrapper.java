@@ -29,6 +29,10 @@ public class CallableWrapper<V, ExecutionEvent> implements Callable<V> {
         this.wrapper = new InstrumentingWrapper<>(eventHandlerFactory);
     }
 
+    public Callable<V> getOrig() {
+        return orig;
+    }
+
     @Override
     public V call() throws Exception {
         ExecutionEvent event = eventFactory.callableExecutionEvent(orig);

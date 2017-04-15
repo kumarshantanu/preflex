@@ -27,6 +27,9 @@ public class RunnableWrapper<ExecutionEvent> implements Runnable {
         this.wrapper = new InstrumentingWrapper<>(eventHandlerFactory);
     }
 
+    public Runnable getOrig() {
+        return orig;
+    }
 
     @Override
     public void run() {

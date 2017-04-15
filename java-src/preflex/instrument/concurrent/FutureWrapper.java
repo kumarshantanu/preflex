@@ -37,6 +37,10 @@ public class FutureWrapper<V, FutureEvent> implements Future<V> {
         this.futureResultWrapper = new InstrumentingWrapper<>(futureResultEventHandlerFactory);
     }
 
+    public Future<V> getOrig() {
+        return orig;
+    }
+
     @Override
     public boolean cancel(final boolean mayInterruptIfRunning) {
         final FutureEvent event = eventFactory.cancellationEvent(orig);
