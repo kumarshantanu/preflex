@@ -43,16 +43,16 @@ public class ExecutorServiceWrapper<ThreadPoolEvent, FutureEvent, ExecutionEvent
     private final EventHandlerFactory<FutureEvent>    futureCancelEventHandlerFactory;
     private final EventHandlerFactory<FutureEvent>    futureResultEventHandlerFactory;
 
-    private final RunnableDecorator       runnableDecorator;
     private final CallableDecorator<?>    callableDecorator;
+    private final RunnableDecorator       runnableDecorator;
     private final FutureDecorator<?>      futureDecorator;
     private final FutureDecorator<Object> futureDecoratorObject;
 
     public ExecutorServiceWrapper(ExecutorService threadPool,
             ConcurrentEventFactory<ThreadPoolEvent, FutureEvent, ExecutionEvent> eventFactory,
             ConcurrentEventHandlerFactory<ThreadPoolEvent, FutureEvent, ExecutionEvent> eventHandlerFactories,
-            RunnableDecorator runnableDecorator,
             CallableDecorator<?> callableDecorator,
+            RunnableDecorator runnableDecorator,
             FutureDecorator<?> futureDecorator) {
         this.orig = threadPool;
         this.eventFactory = eventFactory;
@@ -64,8 +64,8 @@ public class ExecutorServiceWrapper<ThreadPoolEvent, FutureEvent, ExecutionEvent
         this.runnableExecutionEventHandlerFactory = eventHandlerFactories.runnableExecuteHandlerFactory;
         this.futureCancelEventHandlerFactory = eventHandlerFactories.futureCancelHandlerFactory;
         this.futureResultEventHandlerFactory = eventHandlerFactories.futureResultHandlerFactory;
-        this.runnableDecorator = runnableDecorator;
         this.callableDecorator = callableDecorator;
+        this.runnableDecorator = runnableDecorator;
         this.futureDecorator = futureDecorator;
         @SuppressWarnings("unchecked")
         final FutureDecorator<Object> futureDecoratorObject = (FutureDecorator<Object>) futureDecorator;

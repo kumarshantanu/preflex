@@ -152,12 +152,8 @@
   "Given a thread pool, an event generator and optional event handlers instrument the thread pool such that the events
   are raised and handled at the appropriate time. Options are as follows:
 
+  ;; event generator
   :event-generator    instance of preflex.instrument.concurrent.ConcurrentEventFactory
-
-  ;; decorators
-  :runnable-decorator instance of preflex.instrument.concurrent.RunnableDecorator
-  :callable-decorator instance of preflex.instrument.concurrent.CallableDecorator
-  :future-decorator   instance of preflex.instrument.concurrent.FutureDecorator
 
   ;; event handlers
   on-callable-submit  instance of preflex.instrument.EventHandlerFactory or `event-handler-opts->factory` arg
@@ -169,12 +165,17 @@
   on-future-cancel    instance of preflex.instrument.EventHandlerFactory or `event-handler-opts->factory` arg
   on-future-result    instance of preflex.instrument.EventHandlerFactory or `event-handler-opts->factory` arg
 
+  ;; decorators
+  :callable-decorator instance of preflex.instrument.concurrent.CallableDecorator
+  :runnable-decorator instance of preflex.instrument.concurrent.RunnableDecorator
+  :future-decorator   instance of preflex.instrument.concurrent.FutureDecorator
+
   See also:
   event-handler-opts->factory
   default-thread-pool-event-generator"
   [^ExecutorService thread-pool {:keys [;; decorators
-                                        runnable-decorator
                                         callable-decorator
+                                        runnable-decorator
                                         future-decorator
                                         ;; event generator
                                         event-generator
@@ -188,8 +189,8 @@
                                         on-future-cancel
                                         on-future-result]
                                  :or {;; decorators
-                                      runnable-decorator default-runnable-decorator ; RunnableDecorator/IDENTITY
                                       callable-decorator default-callable-decorator ; CallableDecorator/IDENTITY
+                                      runnable-decorator default-runnable-decorator ; RunnableDecorator/IDENTITY
                                       future-decorator   default-future-decorator ; FutureDecorator/IDENTITY
                                       ;; event generator
                                       event-generator    default-thread-pool-event-generator
@@ -217,6 +218,6 @@
         (as-event-handler-factory on-future-cancel)
         (as-event-handler-factory on-future-result)))
     ;; decorators
-    runnable-decorator
     callable-decorator
+    runnable-decorator
     future-decorator))
