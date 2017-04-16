@@ -145,7 +145,7 @@
   shared context with a volatile seed and calls (invoker callable-as-no-arg-fn volatile-context)."
   [f]
   (reify CallableDecorator
-    (wrapCallable [this callable] (let [volatile-context (volatile! {:id (.toString (UUID/randomUUID))})
+    (wrapCallable [this callable] (let [volatile-context (volatile! {})
                                         wrapped-callable (reify Callable
                                                            (call [this] (f #(.call callable) volatile-context)))]
                                     (SharedContextCallable. wrapped-callable volatile-context)))))
@@ -156,7 +156,7 @@
   shared context with a volatile seed and calls (invoker runnable-as-no-arg-fn volatile-context)."
   [f]
   (reify RunnableDecorator
-    (wrapRunnable [this runnable] (let [volatile-context (volatile! {:id (.toString (UUID/randomUUID))})
+    (wrapRunnable [this runnable] (let [volatile-context (volatile! {})
                                         wrapped-runnable (reify Runnable
                                                            (run [this] (f #(.run runnable) volatile-context)))]
                                     (SharedContextRunnable. wrapped-runnable volatile-context)))))
@@ -165,13 +165,13 @@
 (def default-shared-context-callable-decorator
   "A preflex.instrument.concurrent.CallableDecorator instance that initializes shared context with a volatile map."
   (reify CallableDecorator
-    (wrapCallable [this callable] (SharedContextCallable. callable (volatile! {:id (.toString (UUID/randomUUID))})))))
+    (wrapCallable [this callable] (SharedContextCallable. callable (volatile! {})))))
 
 
 (def default-shared-context-runnable-decorator
   "A preflex.instrument.concurrent.RunnableDecorator instance that initializes shared context with a volatile map."
   (reify RunnableDecorator
-    (wrapRunnable [this runnable] (SharedContextRunnable. runnable (volatile! {:id (.toString (UUID/randomUUID))})))))
+    (wrapRunnable [this runnable] (SharedContextRunnable. runnable (volatile! {})))))
 
 
 (defn make-shared-context-thread-pool-event-handlers
