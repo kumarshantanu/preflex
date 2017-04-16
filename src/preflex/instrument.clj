@@ -13,6 +13,7 @@
     [preflex.internal  :as in]
     [preflex.util      :as u])
   (:import
+    [java.util UUID]
     [java.util.concurrent Callable ExecutorService]
     [preflex.instrument EventHandler EventHandlerFactory SharedContext]
     [preflex.instrument.concurrent
@@ -131,37 +132,37 @@
 
 
 (defn make-shared-context-callable-decorator
-  ([seed f]
-    (reify CallableDecorator
-      (wrapCallable [this callable] (let [wrapped-callable (reify Callable
-                                                             (call [this] (f (fn [] (.call callable)))))]
-                                      (SharedContextCallable. wrapped-callable (volatile! seed))))))
-  ([f]
-    (make-shared-context-callable-decorator {} f))
-  ([]
-    (make-shared-context-callable-decorator {} (fn [g] (g)))))
+  "Given invoker fn (arity 2), return a preflex.instrument.concurrent.CallableDecorator instance that initializes
+  shared context with a volatile seed and calls (invoker callable-as-no-arg-fn volatile-context)."
+  [f]
+  (reify CallableDecorator
+    (wrapCallable [this callable] (let [volatile-context (volatile! {:id (.toString (UUID/randomUUID))})
+                                        wrapped-callable (reify Callable
+                                                           (call [this] (f #(.call callable) volatile-context)))]
+                                    (SharedContextCallable. wrapped-callable volatile-context)))))
 
 
 (defn make-shared-context-runnable-decorator
-  ([seed f]
-    (reify RunnableDecorator
-      (wrapRunnable [this runnable] (let [wrapped-runnable (reify Runnable
-                                                             (run [this] (f (fn [] (.run runnable)))))]
-                                      (SharedContextRunnable. wrapped-runnable (volatile! seed))))))
-  ([f]
-    (make-shared-context-runnable-decorator {} f))
-  ([]
-    (make-shared-context-runnable-decorator {} (fn [g] (g)))))
+  "Given invoker fn (arity 2), return a preflex.instrument.concurrent.RunnableDecorator instance that initializes
+  shared context with a volatile seed and calls (invoker runnable-as-no-arg-fn volatile-context)."
+  [f]
+  (reify RunnableDecorator
+    (wrapRunnable [this runnable] (let [volatile-context (volatile! {:id (.toString (UUID/randomUUID))})
+                                        wrapped-runnable (reify Runnable
+                                                           (run [this] (f #(.run runnable) volatile-context)))]
+                                    (SharedContextRunnable. wrapped-runnable volatile-context)))))
 
 
 (def default-shared-context-callable-decorator
+  "A preflex.instrument.concurrent.CallableDecorator instance that initializes shared context with a volatile map."
   (reify CallableDecorator
-    (wrapCallable [this callable] (SharedContextCallable. callable (volatile! {})))))
+    (wrapCallable [this callable] (SharedContextCallable. callable (volatile! {:id (.toString (UUID/randomUUID))})))))
 
 
 (def default-shared-context-runnable-decorator
+  "A preflex.instrument.concurrent.RunnableDecorator instance that initializes shared context with a volatile map."
   (reify RunnableDecorator
-    (wrapRunnable [this runnable] (SharedContextRunnable. runnable (volatile! {})))))
+    (wrapRunnable [this runnable] (SharedContextRunnable. runnable (volatile! {:id (.toString (UUID/randomUUID))})))))
 
 
 (defn shared-context-update-event

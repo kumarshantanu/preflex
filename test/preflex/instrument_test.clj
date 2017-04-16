@@ -28,7 +28,7 @@
          (.shutdownNow ~thread-pool-sym)))))
 
 
-(deftest a-test
+(deftest test-instrument-thread-pool
   (testing "dummy instrumentation"
     (with-active-thread-pool [^ExecutorService thread-pool (core/make-bounded-thread-pool 10 10)]
       (doseq [pool [thread-pool (:thread-pool thread-pool)]]
@@ -43,13 +43,38 @@
                           (-> instru/shared-context-event-handlers
                             (assoc
                               :callable-decorator  instru/default-shared-context-callable-decorator
-                              :runnable-decorator  instru/default-shared-context-runnable-decorator)
-                            (dissoc :on-future-cancel :on-future-result)))]
+                              :runnable-decorator  instru/default-shared-context-runnable-decorator)))]
         (let [^FutureWrapper fut (.submit ^ExecutorService instru-pool ^Runnable #(do 10))
               ^SharedContextFuture scf (.getOrig fut)]
           (is (instance? FutureWrapper fut))
           (is (instance? SharedContextFuture scf))
           (is (contains? @(.getContext scf) :submit-begin-ns))
           (is (nil? @fut)))
-        (is (= 10
-              @(.submit ^ExecutorService instru-pool ^Callable #(do 10))))))))
+        (let [^FutureWrapper fut (.submit ^ExecutorService instru-pool ^Callable #(do 10))
+              ^SharedContextFuture scf (.getOrig fut)]
+          (is (instance? FutureWrapper fut))
+          (is (instance? SharedContextFuture scf))
+          (is (contains? @(.getContext scf) :submit-begin-ns))
+          (is (= 10 @fut))))))
+  (testing "invoker with shared context instrumentation"
+    (with-active-thread-pool [^ExecutorService thread-pool (core/make-bounded-thread-pool 10 10)]
+      (let [invoker (fn [g volatile-context] (vswap! volatile-context assoc :added-by-invoker 20) (g))
+            instru-pool (instru/instrument-thread-pool thread-pool
+                          (-> instru/shared-context-event-handlers
+                            (assoc
+                              :callable-decorator  (instru/make-shared-context-callable-decorator invoker)
+                              :runnable-decorator  (instru/make-shared-context-runnable-decorator invoker))))]
+        (let [^FutureWrapper fut (.submit ^ExecutorService instru-pool ^Runnable #(do 10))
+              ^SharedContextFuture scf (.getOrig fut)]
+          (is (instance? FutureWrapper fut))
+          (is (instance? SharedContextFuture scf))
+          (is (contains? @(.getContext scf) :submit-begin-ns))
+          (is (= 20 (get @(.getContext scf) :added-by-invoker)))
+          (is (nil? @fut)))
+        (let [^FutureWrapper fut (.submit ^ExecutorService instru-pool ^Callable #(do 10))
+              ^SharedContextFuture scf (.getOrig fut)]
+          (is (instance? FutureWrapper fut))
+          (is (instance? SharedContextFuture scf))
+          (is (contains? @(.getContext scf) :submit-begin-ns))
+          (is (= 20 (get @(.getContext scf) :added-by-invoker)))
+          (is (= 10 @fut)))))))
