@@ -14,7 +14,8 @@
     [preflex.instrument :as instru]
     [preflex.internal   :as in])
   (:import
-    [java.util.concurrent ExecutorService]))
+    [java.util.concurrent ExecutorService]
+    [preflex.instrument.concurrent FutureWrapper SharedContextFuture]))
 
 
 (defmacro with-active-thread-pool
@@ -45,7 +46,11 @@
                               :runnable-decorator  instru/shared-context-runnable-decorator
                               :future-decorator    instru/shared-context-future-decorator)
                             (dissoc :on-future-cancel :on-future-result)))]
-        (is (nil?
-              @(.submit ^ExecutorService instru-pool ^Runnable #(do 10))))
+        (let [^FutureWrapper fut (.submit ^ExecutorService instru-pool ^Runnable #(do 10))
+              ^SharedContextFuture scf (.getOrig fut)]
+          (is (instance? FutureWrapper fut))
+          (is (instance? SharedContextFuture scf))
+          (is (contains? @(.getContext scf) :submit-begin-ns))
+          (is (nil? @fut)))
         (is (= 10
               @(.submit ^ExecutorService instru-pool ^Callable #(do 10))))))))
