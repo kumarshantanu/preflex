@@ -17,17 +17,12 @@
     [preflex.instrument EventHandler EventHandlerFactory SharedContext]
     [preflex.instrument.concurrent
      CallableDecorator
-     CallableWrapper
      ConcurrentEventFactory
      ConcurrentEventHandlerFactory
      ExecutorServiceWrapper
-     FutureDecorator
-     FutureWrapper
      RunnableDecorator
-     RunnableWrapper
      SharedContextCallable
-     SharedContextRunnable
-     SharedContextFuture]))
+     SharedContextRunnable]))
 
 
 (defn make-event-handler
@@ -145,11 +140,6 @@
     (wrap [this runnable] (SharedContextRunnable. runnable (volatile! {})))))
 
 
-(def shared-context-future-decorator
-  (reify FutureDecorator
-    (wrap [this future-obj] (SharedContextFuture. future-obj (volatile! {})))))
-
-
 (defn shared-context-update-event
   [event event-k f]
   (when (contains? event event-k)
@@ -228,7 +218,6 @@
   ;; decorators
   :callable-decorator instance of preflex.instrument.concurrent.CallableDecorator
   :runnable-decorator instance of preflex.instrument.concurrent.RunnableDecorator
-  :future-decorator   instance of preflex.instrument.concurrent.FutureDecorator
 
   See also:
   event-handler-opts->factory
@@ -236,7 +225,6 @@
   [^ExecutorService thread-pool {:keys [;; decorators
                                         callable-decorator
                                         runnable-decorator
-                                        future-decorator
                                         ;; event generator
                                         event-generator
                                         ;; event handlers
@@ -251,7 +239,6 @@
                                  :or {;; decorators
                                       callable-decorator CallableDecorator/IDENTITY
                                       runnable-decorator RunnableDecorator/IDENTITY
-                                      future-decorator   FutureDecorator/IDENTITY
                                       ;; event generator
                                       event-generator    default-thread-pool-event-generator
                                       ;; event handlers
@@ -279,5 +266,4 @@
         (as-event-handler-factory on-future-result)))
     ;; decorators
     callable-decorator
-    runnable-decorator
-    future-decorator))
+    runnable-decorator))

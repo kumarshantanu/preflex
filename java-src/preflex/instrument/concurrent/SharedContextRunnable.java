@@ -10,6 +10,8 @@
 
 package preflex.instrument.concurrent;
 
+import java.util.concurrent.Future;
+
 import preflex.instrument.SharedContext;
 
 public class SharedContextRunnable<T> extends SharedContext<T> implements Runnable {
@@ -24,6 +26,10 @@ public class SharedContextRunnable<T> extends SharedContext<T> implements Runnab
     @Override
     public void run() {
         orig.run();
+    }
+
+    public Future<?> wrap(Future<?> future) {
+        return new SharedContextFuture<>(future, this.getContext());
     }
 
 }

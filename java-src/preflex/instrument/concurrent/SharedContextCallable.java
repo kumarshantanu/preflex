@@ -11,6 +11,7 @@
 package preflex.instrument.concurrent;
 
 import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 
 import preflex.instrument.SharedContext;
 
@@ -26,6 +27,10 @@ public class SharedContextCallable<T, V> extends SharedContext<T> implements Cal
     @Override
     public V call() throws Exception {
         return orig.call();
+    }
+
+    public Future<V> wrap(Future<V> future) {
+        return new SharedContextFuture<>(future, this.getContext());
     }
 
 }
