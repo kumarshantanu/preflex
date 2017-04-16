@@ -24,7 +24,7 @@ public class SharedContextFuture<T, V> extends SharedContext<T> implements Futur
     public SharedContextFuture(Future<V> future, T context) {
         super(context);
         this.orig = future;
-	}
+    }
 
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
