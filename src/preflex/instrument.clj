@@ -13,7 +13,7 @@
     [preflex.internal  :as in]
     [preflex.util      :as u])
   (:import
-    [java.util.concurrent Callable ExecutorService Future]
+    [java.util.concurrent Callable ExecutorService]
     [preflex.instrument EventHandler EventHandlerFactory SharedContext]
     [preflex.instrument.concurrent
      CallableDecorator
@@ -130,14 +130,38 @@
      :future-result    (fn [fut]   {:event-context :thread-future :event-type :future-result    :future   fut})}))
 
 
-(def shared-context-callable-decorator
+(defn make-shared-context-callable-decorator
+  ([seed f]
+    (reify CallableDecorator
+      (wrapCallable [this callable] (let [wrapped-callable (reify Callable
+                                                             (call [this] (f (fn [] (.call callable)))))]
+                                      (SharedContextCallable. wrapped-callable (volatile! seed))))))
+  ([f]
+    (make-shared-context-callable-decorator {} f))
+  ([]
+    (make-shared-context-callable-decorator {} (fn [g] (g)))))
+
+
+(defn make-shared-context-runnable-decorator
+  ([seed f]
+    (reify RunnableDecorator
+      (wrapRunnable [this runnable] (let [wrapped-runnable (reify Runnable
+                                                             (run [this] (f (fn [] (.run runnable)))))]
+                                      (SharedContextRunnable. wrapped-runnable (volatile! seed))))))
+  ([f]
+    (make-shared-context-runnable-decorator {} f))
+  ([]
+    (make-shared-context-runnable-decorator {} (fn [g] (g)))))
+
+
+(def default-shared-context-callable-decorator
   (reify CallableDecorator
-    (wrap [this callable] (SharedContextCallable. callable (volatile! {})))))
+    (wrapCallable [this callable] (SharedContextCallable. callable (volatile! {})))))
 
 
-(def shared-context-runnable-decorator
+(def default-shared-context-runnable-decorator
   (reify RunnableDecorator
-    (wrap [this runnable] (SharedContextRunnable. runnable (volatile! {})))))
+    (wrapRunnable [this runnable] (SharedContextRunnable. runnable (volatile! {})))))
 
 
 (defn shared-context-update-event
@@ -153,31 +177,35 @@
                            (fn [volatile-context]
                              (vswap! volatile-context
                                (fn [{:keys [^long submit-begin-ns] :as context}]
-                                 (let [now-ns (u/now-nanos)]
+                                 (let [now-ns (u/now-nanos)
+                                       duration-submit-ns (unchecked-subtract now-ns submit-begin-ns)]
                                    (assoc context
                                      :submit-end-ns      now-ns
-                                     :duration-submit-ns (unchecked-subtract now-ns submit-begin-ns))))))))
+                                     :duration-submit-ns duration-submit-ns)))))))
         before-execute (fn [event-k event]
                          (shared-context-update-event event event-k
                            (fn [volatile-context]
                              (vswap! volatile-context
                                (fn [{:keys [^long submit-begin-ns ^long submit-end-ns] :as context}]
-                                 (let [now-ns (u/now-nanos)]
+                                 (let [now-ns (u/now-nanos)
+                                       duration-queue-ns  (unchecked-subtract now-ns
+                                                            ;; submit-end-ns may not be updated (race condition)
+                                                            ^long (or submit-end-ns submit-begin-ns))]
                                    (assoc context
                                      :execute-begin-ns   now-ns
-                                     :duration-queue-ns  (unchecked-subtract now-ns
-                                                           ;; submit-end-ns may not be updated (race condition)
-                                                           ^long (or submit-end-ns submit-begin-ns)))))))))
+                                     :duration-queue-ns  duration-queue-ns)))))))
         after-execute  (fn [event-k event]
                          (shared-context-update-event event event-k
                            (fn [volatile-context]
                              (vswap! volatile-context
                                (fn [{:keys [^long submit-begin-ns ^long execute-begin-ns] :as context}]
-                                 (let [now-ns (u/now-nanos)]
+                                 (let [now-ns (u/now-nanos)
+                                       duration-execute-ns  (unchecked-subtract now-ns execute-begin-ns)
+                                       duration-response-ns (unchecked-subtract now-ns submit-begin-ns)]
                                    (assoc context
                                      :execute-end-ns now-ns
-                                     :duration-execute-ns  (unchecked-subtract now-ns execute-begin-ns)
-                                     :duration-response-ns (unchecked-subtract now-ns submit-begin-ns))))))))
+                                     :duration-execute-ns  duration-execute-ns
+                                     :duration-response-ns duration-response-ns)))))))
         assoc-context  (fn [event-k context-k event]
                          (shared-context-update-event event event-k
                            (fn [volatile-context]
@@ -218,6 +246,7 @@
   ;; decorators
   :callable-decorator instance of preflex.instrument.concurrent.CallableDecorator
   :runnable-decorator instance of preflex.instrument.concurrent.RunnableDecorator
+
 
   See also:
   event-handler-opts->factory

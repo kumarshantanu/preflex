@@ -42,8 +42,8 @@
       (let [instru-pool (instru/instrument-thread-pool thread-pool
                           (-> instru/shared-context-event-handlers
                             (assoc
-                              :callable-decorator  instru/shared-context-callable-decorator
-                              :runnable-decorator  instru/shared-context-runnable-decorator)
+                              :callable-decorator  instru/default-shared-context-callable-decorator
+                              :runnable-decorator  instru/default-shared-context-runnable-decorator)
                             (dissoc :on-future-cancel :on-future-result)))]
         (let [^FutureWrapper fut (.submit ^ExecutorService instru-pool ^Runnable #(do 10))
               ^SharedContextFuture scf (.getOrig fut)]

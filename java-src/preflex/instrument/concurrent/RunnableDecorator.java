@@ -14,11 +14,11 @@ public interface RunnableDecorator {
 
     public static final RunnableDecorator IDENTITY = new RunnableDecorator() {
         @Override
-        public SharedContextRunnable<?> wrap(Runnable orig) {
+        public SharedContextRunnable<?> wrapRunnable(Runnable orig) {
             return new SharedContextRunnable<>(orig, null);
         }
     };
 
-    public SharedContextRunnable<?> wrap(Runnable orig);
+    public SharedContextRunnable<?> wrapRunnable(Runnable orig);
 
 }

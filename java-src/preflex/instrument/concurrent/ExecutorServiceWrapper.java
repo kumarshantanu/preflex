@@ -67,7 +67,7 @@ public class ExecutorServiceWrapper<ThreadPoolEvent, FutureEvent, ExecutionEvent
 
     @Override
     public void execute(final Runnable runnable) {
-        final Runnable decoratedRunnable = runnableDecorator.wrap(runnable);
+        final Runnable decoratedRunnable = runnableDecorator.wrapRunnable(runnable);
         final RunnableWrapper<?> instrumentedTask = new RunnableWrapper<>(
                 decoratedRunnable, eventFactory, runnableExecutionEventHandlerFactory);
         final ThreadPoolEvent event = eventFactory.runnableSubmissionEvent(decoratedRunnable);
@@ -123,7 +123,7 @@ public class ExecutorServiceWrapper<ThreadPoolEvent, FutureEvent, ExecutionEvent
     public <T> Future<T> submit(final Callable<T> callable) {
         @SuppressWarnings("unchecked")
         final CallableDecorator<T> typedCallableDecorator = (CallableDecorator<T>) callableDecorator;
-        final SharedContextCallable<?, T> decoratedTask = typedCallableDecorator.wrap(callable);
+        final SharedContextCallable<?, T> decoratedTask = typedCallableDecorator.wrapCallable(callable);
         final CallableWrapper<T, ?> instrumentedTask = new CallableWrapper<>(decoratedTask,
                 eventFactory, callableExecutionEventHandlerFactory);
         final ThreadPoolEvent event = eventFactory.callableSubmissionEvent(decoratedTask);
@@ -131,7 +131,7 @@ public class ExecutorServiceWrapper<ThreadPoolEvent, FutureEvent, ExecutionEvent
             @Override
             public Future<T> call() {
                 final Future<T> future = orig.submit(instrumentedTask);
-                return new FutureWrapper<>(decoratedTask.wrap(future),
+                return new FutureWrapper<>(decoratedTask.wrapFuture(future),
                         eventFactory, futureCancelEventHandlerFactory, futureResultEventHandlerFactory);
             }
         };
@@ -140,7 +140,7 @@ public class ExecutorServiceWrapper<ThreadPoolEvent, FutureEvent, ExecutionEvent
 
     @Override
     public <T> Future<T> submit(final Runnable runnable, final T result) {
-        final SharedContextRunnable<?> decoratedRunnable = runnableDecorator.wrap(runnable);
+        final SharedContextRunnable<?> decoratedRunnable = runnableDecorator.wrapRunnable(runnable);
         final RunnableWrapper<?> instrumentedTask = new RunnableWrapper<>(
                 decoratedRunnable, eventFactory, runnableExecutionEventHandlerFactory);
         final ThreadPoolEvent event = eventFactory.runnableSubmissionEvent(decoratedRunnable);
@@ -159,7 +159,7 @@ public class ExecutorServiceWrapper<ThreadPoolEvent, FutureEvent, ExecutionEvent
 
     @Override
     public Future<?> submit(final Runnable runnable) {
-        final SharedContextRunnable<?> decoratedRunnable = runnableDecorator.wrap(runnable);
+        final SharedContextRunnable<?> decoratedRunnable = runnableDecorator.wrapRunnable(runnable);
         final RunnableWrapper<?> instrumentedTask = new RunnableWrapper<>(
                 decoratedRunnable, eventFactory, runnableExecutionEventHandlerFactory);
         final ThreadPoolEvent event = eventFactory.runnableSubmissionEvent(decoratedRunnable);
@@ -184,7 +184,7 @@ public class ExecutorServiceWrapper<ThreadPoolEvent, FutureEvent, ExecutionEvent
         final List<SharedContextCallable<?, T>> decoratedTasks = new ArrayList<>(taskCount);
         final List<CallableWrapper<T, ExecutionEvent>> instrumentedTasks = new ArrayList<>(taskCount);
         for (Callable<T> each: tasks) {
-            final SharedContextCallable<?, T> decoratedTask = typedCallableDecorator.wrap(each);
+            final SharedContextCallable<?, T> decoratedTask = typedCallableDecorator.wrapCallable(each);
             final CallableWrapper<T, ExecutionEvent> eachInstrumentedTask = new CallableWrapper<>(
                     decoratedTask, eventFactory, callableExecutionEventHandlerFactory);
             decoratedTasks.add(decoratedTask);
@@ -200,7 +200,7 @@ public class ExecutorServiceWrapper<ThreadPoolEvent, FutureEvent, ExecutionEvent
                 int i = 0;
                 for (Future<T> each: futures) {
                     final Future<T> instrumentedFuture = new FutureWrapper<>(
-                            decoratedTasks.get(i).wrap(each), eventFactory,
+                            decoratedTasks.get(i).wrapFuture(each), eventFactory,
                             futureCancelEventHandlerFactory, futureResultEventHandlerFactory);
                     futWrappers.add(instrumentedFuture);
                     i++;
@@ -220,7 +220,7 @@ public class ExecutorServiceWrapper<ThreadPoolEvent, FutureEvent, ExecutionEvent
         final List<SharedContextCallable<?, T>> decoratedTasks = new ArrayList<>(taskCount);
         final List<CallableWrapper<T, ExecutionEvent>> instrumentedTasks = new ArrayList<>(taskCount);
         for (Callable<T> each: tasks) {
-            final SharedContextCallable<?, T> decoratedTask = typedCallableDecorator.wrap(each);
+            final SharedContextCallable<?, T> decoratedTask = typedCallableDecorator.wrapCallable(each);
             final CallableWrapper<T, ExecutionEvent> eachInstrumentedTask = new CallableWrapper<>(
                     decoratedTask, eventFactory, callableExecutionEventHandlerFactory);
             decoratedTasks.add(decoratedTask);
@@ -236,7 +236,7 @@ public class ExecutorServiceWrapper<ThreadPoolEvent, FutureEvent, ExecutionEvent
                 int i = 0;
                 for (Future<T> each: futures) {
                     final Future<T> instrumentedFuture = new FutureWrapper<>(
-                            decoratedTasks.get(i).wrap(each), eventFactory,
+                            decoratedTasks.get(i).wrapFuture(each), eventFactory,
                             futureCancelEventHandlerFactory, futureResultEventHandlerFactory);
                     futWrappers.add(instrumentedFuture);
                     i++;
@@ -256,7 +256,7 @@ public class ExecutorServiceWrapper<ThreadPoolEvent, FutureEvent, ExecutionEvent
         final Collection<Callable<T>> decoratedTasks = new ArrayList<>(taskCount);
         final List<CallableWrapper<T, ExecutionEvent>> instrumentedTasks = new ArrayList<>(taskCount);
         for (Callable<T> each: tasks) {
-            final Callable<T> decoratedTask = typedCallableDecorator.wrap(each);
+            final Callable<T> decoratedTask = typedCallableDecorator.wrapCallable(each);
             final CallableWrapper<T, ExecutionEvent> eachInstrumentedTask = new CallableWrapper<>(
                     decoratedTask, eventFactory, callableExecutionEventHandlerFactory);
             decoratedTasks.add(decoratedTask);
@@ -282,7 +282,7 @@ public class ExecutorServiceWrapper<ThreadPoolEvent, FutureEvent, ExecutionEvent
         final Collection<Callable<T>> decoratedTasks = new ArrayList<>(taskCount);
         final List<CallableWrapper<T, ExecutionEvent>> instrumentedTasks = new ArrayList<>(taskCount);
         for (Callable<T> each: tasks) {
-            final Callable<T> decoratedTask = typedCallableDecorator.wrap(each);
+            final Callable<T> decoratedTask = typedCallableDecorator.wrapCallable(each);
             final CallableWrapper<T, ExecutionEvent> eachInstrumentedTask = new CallableWrapper<>(
                     decoratedTask, eventFactory, callableExecutionEventHandlerFactory);
             decoratedTasks.add(decoratedTask);

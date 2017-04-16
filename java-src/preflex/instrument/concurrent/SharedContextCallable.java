@@ -29,7 +29,7 @@ public class SharedContextCallable<T, V> extends SharedContext<T> implements Cal
         return orig.call();
     }
 
-    public Future<V> wrap(Future<V> future) {
+    public Future<V> wrapFuture(Future<V> future) {
         return new SharedContextFuture<>(future, this.getContext());
     }
 

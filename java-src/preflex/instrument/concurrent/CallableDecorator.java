@@ -16,11 +16,11 @@ public interface CallableDecorator<V> {
 
     public static final CallableDecorator<?> IDENTITY = new CallableDecorator<Object>() {
         @Override
-        public SharedContextCallable<?, Object> wrap(Callable<Object> orig) {
+        public SharedContextCallable<?, Object> wrapCallable(Callable<Object> orig) {
             return new SharedContextCallable<>(orig, null);
         }
     };
 
-    public SharedContextCallable<?, V> wrap(Callable<V> orig);
+    public SharedContextCallable<?, V> wrapCallable(Callable<V> orig);
 
 }
