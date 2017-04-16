@@ -40,7 +40,7 @@
   (testing "shared context instrumentation"
     (with-active-thread-pool [^ExecutorService thread-pool (core/make-bounded-thread-pool 10 10)]
       (let [instru-pool (instru/instrument-thread-pool thread-pool
-                          (-> instru/shared-context-event-handlers
+                          (-> instru/shared-context-thread-pool-event-handlers-millis
                             (assoc
                               :callable-decorator  instru/default-shared-context-callable-decorator
                               :runnable-decorator  instru/default-shared-context-runnable-decorator)))]
@@ -48,19 +48,19 @@
               ^SharedContextFuture scf (.getOrig fut)]
           (is (instance? FutureWrapper fut))
           (is (instance? SharedContextFuture scf))
-          (is (contains? @(.getContext scf) :submit-begin-ns))
+          (is (contains? @(.getContext scf) :submit-begin-ms))
           (is (nil? @fut)))
         (let [^FutureWrapper fut (.submit ^ExecutorService instru-pool ^Callable #(do 10))
               ^SharedContextFuture scf (.getOrig fut)]
           (is (instance? FutureWrapper fut))
           (is (instance? SharedContextFuture scf))
-          (is (contains? @(.getContext scf) :submit-begin-ns))
+          (is (contains? @(.getContext scf) :submit-begin-ms))
           (is (= 10 @fut))))))
   (testing "invoker with shared context instrumentation"
     (with-active-thread-pool [^ExecutorService thread-pool (core/make-bounded-thread-pool 10 10)]
       (let [invoker (fn [g volatile-context] (vswap! volatile-context assoc :added-by-invoker 20) (g))
             instru-pool (instru/instrument-thread-pool thread-pool
-                          (-> instru/shared-context-event-handlers
+                          (-> instru/shared-context-thread-pool-event-handlers-nanos
                             (assoc
                               :callable-decorator  (instru/make-shared-context-callable-decorator invoker)
                               :runnable-decorator  (instru/make-shared-context-runnable-decorator invoker))))]

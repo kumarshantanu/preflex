@@ -72,6 +72,15 @@
      ~@body))
 
 
+(defn shared-context-update-event
+  "Given event as an associate structure and an event-key, update the shared context contained in the event attribute
+  using the arity-1 update fn argument."
+  [event event-k f]
+  (when (contains? event event-k)
+    (with-shared-context [context (get event event-k)]
+      (f context))))
+
+
 ;; ---------- thread pool instrumentation ----------
 
 
@@ -165,66 +174,110 @@
     (wrapRunnable [this runnable] (SharedContextRunnable. runnable (volatile! {:id (.toString (UUID/randomUUID))})))))
 
 
-(defn shared-context-update-event
-  [event event-k f]
-  (when (contains? event event-k)
-    (with-shared-context [context (get event event-k)]
-      (f context))))
-
-
-(def shared-context-event-handlers
+(defn make-shared-context-thread-pool-event-handlers
+  "Given keyword arguments in a map, return thread-pool instrumentation event handlers."
+  [{:keys [now-fn
+           k-submit-begin
+           k-submit-end
+           k-duration-submit
+           k-execute-begin
+           k-execute-end
+           k-duration-queue
+           k-duration-execute
+           k-duration-response
+           k-future-cancel-begin
+           k-future-cancel-end
+           k-future-result-begin
+           k-future-result-end]}]
   (let [after-submit   (fn [event-k event]
                          (shared-context-update-event event event-k
                            (fn [volatile-context]
                              (vswap! volatile-context
-                               (fn [{:keys [^long submit-begin-ns] :as context}]
-                                 (let [now-ns (u/now-nanos)
-                                       duration-submit-ns (unchecked-subtract now-ns submit-begin-ns)]
+                               (fn [{^long submit-begin-ts k-submit-begin
+                                     :as context}]
+                                 (let [^long now-ts (now-fn)
+                                       duration-submit-ts (unchecked-subtract now-ts submit-begin-ts)]
                                    (assoc context
-                                     :submit-end-ns      now-ns
-                                     :duration-submit-ns duration-submit-ns)))))))
+                                     k-submit-end      now-ts
+                                     k-duration-submit duration-submit-ts)))))))
         before-execute (fn [event-k event]
                          (shared-context-update-event event event-k
                            (fn [volatile-context]
                              (vswap! volatile-context
-                               (fn [{:keys [^long submit-begin-ns ^long submit-end-ns] :as context}]
-                                 (let [now-ns (u/now-nanos)
-                                       duration-queue-ns  (unchecked-subtract now-ns
-                                                            ;; submit-end-ns may not be updated (race condition)
-                                                            ^long (or submit-end-ns submit-begin-ns))]
+                               (fn [{^long submit-begin-ts k-submit-begin
+                                     ^long submit-end-ts   k-submit-end
+                                     :as context}]
+                                 (let [^long now-ts (now-fn)
+                                       duration-queue-ts (unchecked-subtract now-ts
+                                                           ;; submit-end-ts may not be updated by now (race condition)
+                                                           ^long (or submit-end-ts submit-begin-ts))]
                                    (assoc context
-                                     :execute-begin-ns   now-ns
-                                     :duration-queue-ns  duration-queue-ns)))))))
+                                     k-execute-begin   now-ts
+                                     k-duration-queue  duration-queue-ts)))))))
         after-execute  (fn [event-k event]
                          (shared-context-update-event event event-k
                            (fn [volatile-context]
                              (vswap! volatile-context
-                               (fn [{:keys [^long submit-begin-ns ^long execute-begin-ns] :as context}]
-                                 (let [now-ns (u/now-nanos)
-                                       duration-execute-ns  (unchecked-subtract now-ns execute-begin-ns)
-                                       duration-response-ns (unchecked-subtract now-ns submit-begin-ns)]
+                               (fn [{^long submit-begin-ts  k-submit-begin
+                                     ^long execute-begin-ts k-execute-begin
+                                     :as context}]
+                                 (let [^long now-ts (now-fn)
+                                       duration-execute-ts  (unchecked-subtract now-ts execute-begin-ts)
+                                       duration-response-ts (unchecked-subtract now-ts submit-begin-ts)]
                                    (assoc context
-                                     :execute-end-ns now-ns
-                                     :duration-execute-ns  duration-execute-ns
-                                     :duration-response-ns duration-response-ns)))))))
+                                     k-execute-end now-ts
+                                     k-duration-execute  duration-execute-ts
+                                     k-duration-response duration-response-ts)))))))
         assoc-context  (fn [event-k context-k event]
                          (shared-context-update-event event event-k
                            (fn [volatile-context]
                              (vswap! volatile-context
                                (fn [context]
-                                 (assoc context context-k (u/now-nanos)))))))]
-    {:on-callable-submit  {:before (partial assoc-context  :callable :submit-begin-ns)
+                                 (assoc context context-k (now-fn)))))))]
+    {:on-callable-submit  {:before (partial assoc-context  :callable k-submit-begin)
                            :after  (partial after-submit   :callable)}
-     :on-runnable-submit  {:before (partial assoc-context  :runnable :submit-begin-ns)
+     :on-runnable-submit  {:before (partial assoc-context  :runnable k-submit-begin)
                            :after  (partial after-submit   :runnable)}
      :on-callable-execute {:before (partial before-execute :callable)
                            :after  (partial after-execute  :callable)}
      :on-runnable-execute {:before (partial before-execute :runnable)
                            :after  (partial after-execute  :runnable)}
-     :on-future-cancel    {:before (partial assoc-context  :future   :cancel-begin-ns)
-                           :after  (partial assoc-context  :future   :cancel-end-ns)}
-     :on-future-result    {:before (partial assoc-context  :future   :result-begin-ns)
-                           :after  (partial assoc-context  :future   :result-end-ns)}}))
+     :on-future-cancel    {:before (partial assoc-context  :future   k-future-cancel-begin)
+                           :after  (partial assoc-context  :future   k-future-cancel-end)}
+     :on-future-result    {:before (partial assoc-context  :future   k-future-result-begin)
+                           :after  (partial assoc-context  :future   k-future-result-end)}}))
+
+
+(def shared-context-thread-pool-event-handlers-nanos  (make-shared-context-thread-pool-event-handlers
+                                                        {:now-fn                u/now-nanos
+                                                         :k-submit-begin        :submit-begin-ns
+                                                         :k-submit-end          :submit-end-ns
+                                                         :k-duration-submit     :duration-submit-ns
+                                                         :k-execute-begin       :execute-begin-ns
+                                                         :k-execute-end         :execute-end-ns
+                                                         :k-duration-queue      :duration-queue-ns
+                                                         :k-duration-execute    :duration-execute-ns
+                                                         :k-duration-response   :duration-response-ns
+                                                         :k-future-cancel-begin :cancel-begin-ns
+                                                         :k-future-cancel-end   :cancel-end-ns
+                                                         :k-future-result-begin :result-begin-ns
+                                                         :k-future-result-end   :result-end-ns}))
+
+
+(def shared-context-thread-pool-event-handlers-millis (make-shared-context-thread-pool-event-handlers
+                                                        {:now-fn                u/now-millis
+                                                         :k-submit-begin        :submit-begin-ms
+                                                         :k-submit-end          :submit-end-ms
+                                                         :k-duration-submit     :duration-submit-ms
+                                                         :k-execute-begin       :execute-begin-ms
+                                                         :k-execute-end         :execute-end-ms
+                                                         :k-duration-queue      :duration-queue-ms
+                                                         :k-duration-execute    :duration-execute-ms
+                                                         :k-duration-response   :duration-response-ms
+                                                         :k-future-cancel-begin :cancel-begin-ms
+                                                         :k-future-cancel-end   :cancel-end-ms
+                                                         :k-future-result-begin :result-begin-ms
+                                                         :k-future-result-end   :result-end-ms}))
 
 
 (defn instrument-thread-pool
