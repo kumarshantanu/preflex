@@ -11,7 +11,7 @@ All notable changes to this project will be documented in this file. This change
   - Command
 
 
-## [WIP] 0.1.0 / UNRELEASED
+## [WIP] 0.2.0-alpha1 / UNRELEASED
 
 ### Added
 
