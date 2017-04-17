@@ -5,8 +5,10 @@ All notable changes to this project will be documented in this file. This change
 
 - Instrumentation
   - JDBC (including top slow queries)
-- Retry
-- Throttle
+- Resilience primitives
+  - Move to namespace `preflex.resilience`
+  - Retry
+  - Throttle
 - Hystrix emulation
   - Command
 
@@ -18,12 +20,17 @@ All notable changes to this project will be documented in this file. This change
 - Instrumentation
   - Thread pool
 
-
 ### Changed
 
 - Resilience primitives
-  - [TODO] Move to namespace `preflex.resilience`
-  - [TODO] Clean up the optional argument names
+  - Rename optional argument names (API cleanup)
+    - `preflex.core/make-bounded-thread-pool`
+      - `:thread-pool-name` to `:name`
+    - `preflex.core/make-counting-semaphore`
+      - `:semaphore-name` to `:name`
+      - `:semaphore-fair?` to `:fair?`
+    - `preflex.core/make-circuit-breaker`
+      - `:circuit-breaker-name` to `:name`
 
 
 ## 0.1.0-alpha1 / 2017-March-07

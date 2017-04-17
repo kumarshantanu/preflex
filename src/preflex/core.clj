@@ -34,12 +34,12 @@
 (defn make-bounded-thread-pool
   "Given max thread-count, work queue-size and options, create and return a bounded thread pool.
   Options:
-    :thread-pool-name     (any type) thread-pool name, coerced as string
+    :name                 (any type) thread-pool name, coerced as string
     :keep-alive-duration  (Duration) timeout for idle threads after which they may be terminated
     :core-thread-count    (int)      core thread count
     :core-thread-timeout? (boolean)  whether idle core threads should be terminated after timeout"
-  ([^long max-thread-count ^long queue-capacity {:keys [thread-pool-name
-                                                        keep-alive-duration
+  ([^long max-thread-count ^long queue-capacity {thread-pool-name :name
+                                                 :keys [keep-alive-duration
                                                         core-thread-count
                                                         core-thread-timeout?]
                                                  :or {thread-pool-name     (gensym "bounded-thread-pool-")
@@ -173,10 +173,10 @@
 (defn make-counting-semaphore
   "Given max permits count, create and return a counting semaphore.
   Options:
-    :semaphore-name  (any type) semaphore name, coerced as string
-    :semaphore-fair? (boolean)  whether semaphore should use fair acquisition"
-  ([^long max-permits {:keys [semaphore-name
-                              semaphore-fair?]
+    :name  (any type) semaphore name, coerced as string
+    :fair? (boolean)  whether semaphore should use fair acquisition"
+  ([^long max-permits {semaphore-name  :name
+                       semaphore-fair? :fair?
                        :or {semaphore-name (gensym "counting-semaphore-")
                             semaphore-fair? false}}]
     (let [^Semaphore semaphore (Semaphore. (int max-permits) (boolean semaphore-fair?))]
@@ -366,11 +366,11 @@
   * A caller may invoke (preflex.type.ICircuitBreaker/mark!) informing about the status of an operation. Success
     sets circuit-breaker into connected state, whereas failure may set circuit breaker into tripped state.
   Options:
-    :circuit-breaker-name (any type) circuit-breaker name, coerced as string
-    :on-trip              (fn/1)     called when circuit breaker switches from connected to tripped state
-    :on-connect           (fn/1)     called when circuit breaker switches from tripped to connected state"
-  ([fault-detector retry-resolver {:keys [circuit-breaker-name
-                                          on-trip
+    :name       (any type) circuit-breaker name, coerced as string
+    :on-trip    (fn/1)     called when circuit breaker switches from connected to tripped state
+    :on-connect (fn/1)     called when circuit breaker switches from tripped to connected state"
+  ([fault-detector retry-resolver {circuit-breaker-name :name
+                                   :keys [on-trip
                                           on-connect]
                                    :or {circuit-breaker-name (gensym "circuit-breaker-")
                                         on-trip    in/nop

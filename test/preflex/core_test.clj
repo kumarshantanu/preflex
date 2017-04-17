@@ -24,7 +24,7 @@
   (let [core-size 10
         pool-size 20
         queue-len 30
-        pool (p/make-bounded-thread-pool pool-size queue-len {:thread-pool-name "test-pool"
+        pool (p/make-bounded-thread-pool pool-size queue-len {:name "test-pool"
                                                               :core-thread-count core-size})
         idle #(u/sleep-millis 1000)
         sint (atom 1)]
@@ -93,10 +93,10 @@
   (let [core-size 10
         pool-size 10
         queue-len 10
-        thread-pool (p/make-bounded-thread-pool pool-size queue-len {:thread-pool-name "test-pool"
+        thread-pool (p/make-bounded-thread-pool pool-size queue-len {:name "test-pool"
                                                                      :core-thread-count core-size})
         idle #(u/sleep-millis 1000)
-        sem (p/make-counting-semaphore 10 {:semaphore-name "test-semaphore"})]
+        sem (p/make-counting-semaphore 10 {:name "test-semaphore"})]
     (is (im/counting-semaphore? sem))
     (is (= "test-semaphore" (name sem)))
     (testing "Semaphore acquisition"
@@ -262,8 +262,9 @@
         ccb (p/make-circuit-breaker
               mfd
               mrr
-              {})]
+              {:name "test-circuit-breaker"})]
     (testing "Initial state"
+      (is (= "test-circuit-breaker" (name ccb)))
       (is (:state-connected? (deref ccb)) "Intial circuit-breaker state should be logical true")
       (is (= 5 (p/via-circuit-breaker ccb #(+ 2 3)))))
     (testing "Fault"
