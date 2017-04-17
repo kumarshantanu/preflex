@@ -23,7 +23,7 @@ All notable changes to this project will be documented in this file. This change
 ### Changed
 
 - Resilience primitives
-  - Rename optional argument names (API cleanup)
+  - [BREAKING CHANGE] Rename optional argument names (API cleanup)
     - `preflex.core/make-bounded-thread-pool`
       - `:thread-pool-name` to `:name`
     - `preflex.core/make-counting-semaphore`
