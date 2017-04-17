@@ -16,6 +16,7 @@ Preflex provides the following facilities:
 * Instrumentation
   * Success/failure tracking - tracks success/failure of an operation
   * Latency tracking - tracks latency of an operation
+  * Thread-pool instrumentation - callbacks for all stages, task wrapping
 * Metrics
   * Ordinary counters
   * Rolling (sliding-window) counters
@@ -24,7 +25,7 @@ Preflex provides the following facilities:
 
 ## Usage
 
-Leiningen coordinates: `[preflex "0.1.0-alpha1"]`
+Leiningen coordinates: `[preflex "0.2.0-alpha1"]`
 
 See [documentation](doc/intro.md)
 

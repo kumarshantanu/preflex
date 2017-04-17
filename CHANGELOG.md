@@ -13,7 +13,7 @@ All notable changes to this project will be documented in this file. This change
   - Command
 
 
-## [WIP] 0.2.0-alpha1 / UNRELEASED
+## 0.2.0-alpha1 / 2017-April-17
 
 ### Added
 

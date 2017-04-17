@@ -10,9 +10,10 @@ and observability of your application using instrumentation, metrics and safety 
 Rest of the document assumes the following namespace aliases:
 
 ```clojure
-(require '[preflex.core    :as p])
-(require '[preflex.metrics :as m])
-(require '[preflex.type    :as t])
+(require '[preflex.core       :as p])
+(require '[preflex.instrument :as i])
+(require '[preflex.metrics    :as m])
+(require '[preflex.type       :as t])
 ```
 
 
@@ -139,4 +140,31 @@ Preflex offers a way to fall back on alternate operations.
 ```clojure
 ; if the database call errors out, read from lossy summary cache
 (p/via-fallback [#(read-from-summary-cache id)] #(read-from-database id))
+```
+
+
+## Instrumenting a thread-pool (any `java.util.concurrent.ExecutorService` instance)
+
+When tasks in a thread-pool take longer than usual, we want to know how is the time spent for the tasks. In the example
+below we instrument a thread-pool to capture the timestamp of every stage a task goes through.
+
+```clojure
+;; create a thread pool of maximum 10 threads and queue-size of 20
+(def tp (p/make-bounded-thread-pool 10 20))
+
+;; define an invoker to execute the task (submitted to the thread pool) as a no-arg fn
+(defn invoker [g volatile-context] (println @volatile-context) (g))
+
+;; instrument the thread-pool (see the docstring for arguments)
+(def instrumented-thread-pool (i/instrument-thread-pool tp
+                                (assoc i/shared-context-thread-pool-event-handlers-millis
+                                  :callable-decorator (i/make-shared-context-callable-decorator invoker)
+                                  :runnable-decorator (i/make-shared-context-runnable-decorator invoker))))
+```
+
+When we submit a task to the instrumented thread pool, the captured event timestamps (so far) are printed before
+executing the task.
+
+```clojure
+@(.submit ^java.util.concurrent.ExecutorService instrumented-thread-pool ^java.util.concurrent.Callable #(+ 10 20))
 ```
