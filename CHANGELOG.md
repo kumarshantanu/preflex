@@ -13,15 +13,19 @@ All notable changes to this project will be documented in this file. This change
   - Command
 
 
+## 0.2.0-alpha2 / 2017-April-??
+
+### Fixed
+- [TODO] Fixed issue where the fallback fns are invoked ahead of the primary fn in `preflex.core/via-fallback`
+
+
 ## 0.2.0-alpha1 / 2017-April-17
 
 ### Added
-
 - Instrumentation
   - Thread pool
 
 ### Changed
-
 - Resilience primitives
   - [BREAKING CHANGE] Rename optional argument names (API cleanup)
     - `preflex.core/make-bounded-thread-pool`
@@ -36,7 +40,6 @@ All notable changes to this project will be documented in this file. This change
 ## 0.1.0-alpha1 / 2017-March-07
 
 ### Added
-
 - Resilience primitives in namespace `preflex.core`
 - Metrics primitives in namespace `preflex.metrics`
 - Instrumentation
