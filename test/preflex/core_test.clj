@@ -355,6 +355,6 @@
 (deftest test-fallback
   (is (= 10 (p/via-fallback nil #(+ 4 6))))
   (is (thrown? Exception (p/via-fallback nil #(throw (Exception. "test")))))
-  (is (= 10 (p/via-fallback [#(do 10)] #(+ 4 6))))
+  (is (= 10 (p/via-fallback [#(do 12)] #(+ 4 6))))
   (is (= 30 (p/via-fallback [#(throw (Exception. "test")) #(+ 10 20)] #(throw (Exception. "test")))))
   (is (= 50 (p/via-fallback [#(+ 20 30) #(throw (Exception. "test"))] #(throw (Exception. "test"))))))

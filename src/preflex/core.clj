@@ -491,7 +491,7 @@
                        post-result   in/nop
                        post-error    in/nop}}
     f]
-    (let [tasks (conj (vec fallback-fns) f)
+    (let [tasks (cons f (seq fallback-fns))
           ctx (context-maker tasks)]
       (loop [fs tasks]
         (let [f (first fs)

@@ -16,7 +16,7 @@ All notable changes to this project will be documented in this file. This change
 ## 0.2.0-alpha2 / 2017-April-??
 
 ### Fixed
-- [TODO] Fixed issue where the fallback fns are invoked ahead of the primary fn in `preflex.core/via-fallback`
+- Fix issue where the fallback fns are invoked ahead of the primary fn in `preflex.core/via-fallback`
 
 
 ## 0.2.0-alpha1 / 2017-April-17
