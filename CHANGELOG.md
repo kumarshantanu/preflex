@@ -17,6 +17,7 @@ All notable changes to this project will be documented in this file. This change
 
 ### Fixed
 - Fix issue where the fallback fns are invoked ahead of the primary fn in `preflex.core/via-fallback`
+- Calculate `queue-duration` as `exec-begin-ts - submit-begin-ts` in thread-pool instrumentation
 
 
 ## 0.2.0-alpha1 / 2017-April-17

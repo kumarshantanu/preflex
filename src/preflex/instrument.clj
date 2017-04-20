@@ -205,12 +205,9 @@
                            (fn [volatile-context]
                              (vswap! volatile-context
                                (fn [{^long submit-begin-ts k-submit-begin
-                                     ^long submit-end-ts   k-submit-end
                                      :as context}]
                                  (let [^long now-ts (now-fn)
-                                       duration-queue-ts (unchecked-subtract now-ts
-                                                           ;; submit-end-ts may not be updated by now (race condition)
-                                                           ^long (or submit-end-ts submit-begin-ts))]
+                                       duration-queue-ts (unchecked-subtract now-ts submit-begin-ts)]
                                    (assoc context
                                      k-execute-begin   now-ts
                                      k-duration-queue  duration-queue-ts)))))))
