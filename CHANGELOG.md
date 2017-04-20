@@ -13,7 +13,7 @@ All notable changes to this project will be documented in this file. This change
   - Command
 
 
-## 0.2.0-alpha2 / 2017-April-??
+## 0.2.0-alpha2 / 2017-April-20
 
 ### Fixed
 - Fix issue where the fallback fns are invoked ahead of the primary fn in `preflex.core/via-fallback`

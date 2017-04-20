@@ -1,4 +1,4 @@
-(defproject preflex "0.2.0-alpha2-SNAPSHOT"
+(defproject preflex "0.2.0-alpha2"
   :description "Metrics, Instrumentation and Resilience for Clojure"
   :url "https://github.com/kumarshantanu/preflex"
   :license {:name "Eclipse Public License"
