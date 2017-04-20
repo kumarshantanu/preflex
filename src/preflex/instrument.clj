@@ -196,10 +196,10 @@
                                (fn [{^long submit-begin-ts k-submit-begin
                                      :as context}]
                                  (let [^long now-ts (now-fn)
-                                       duration-submit-ts (unchecked-subtract now-ts submit-begin-ts)]
+                                       duration-submit (unchecked-subtract now-ts submit-begin-ts)]
                                    (assoc context
                                      k-submit-end      now-ts
-                                     k-duration-submit duration-submit-ts)))))))
+                                     k-duration-submit duration-submit)))))))
         before-execute (fn [event-k event]
                          (shared-context-update-event event event-k
                            (fn [volatile-context]
@@ -207,10 +207,10 @@
                                (fn [{^long submit-begin-ts k-submit-begin
                                      :as context}]
                                  (let [^long now-ts (now-fn)
-                                       duration-queue-ts (unchecked-subtract now-ts submit-begin-ts)]
+                                       duration-queue (unchecked-subtract now-ts submit-begin-ts)]
                                    (assoc context
                                      k-execute-begin   now-ts
-                                     k-duration-queue  duration-queue-ts)))))))
+                                     k-duration-queue  duration-queue)))))))
         after-execute  (fn [event-k event]
                          (shared-context-update-event event event-k
                            (fn [volatile-context]
@@ -219,12 +219,12 @@
                                      ^long execute-begin-ts k-execute-begin
                                      :as context}]
                                  (let [^long now-ts (now-fn)
-                                       duration-execute-ts  (unchecked-subtract now-ts execute-begin-ts)
-                                       duration-response-ts (unchecked-subtract now-ts submit-begin-ts)]
+                                       duration-execute  (unchecked-subtract now-ts execute-begin-ts)
+                                       duration-response (unchecked-subtract now-ts submit-begin-ts)]
                                    (assoc context
                                      k-execute-end now-ts
-                                     k-duration-execute  duration-execute-ts
-                                     k-duration-response duration-response-ts)))))))
+                                     k-duration-execute  duration-execute
+                                     k-duration-response duration-response)))))))
         assoc-context  (fn [event-k context-k event]
                          (shared-context-update-event event event-k
                            (fn [volatile-context]
