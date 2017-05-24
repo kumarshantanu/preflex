@@ -2,7 +2,7 @@
 
 A Clojure library for resilience, instrumentation and metrics.
 
-**Currently in ALPHA. Expect breaking changes!**
+**Early days. Expect breaking changes!**
 
 _**Requires Clojure 1.7 or higher, Java 7 or higher.**_
 
@@ -25,7 +25,7 @@ Preflex provides the following facilities:
 
 ## Usage
 
-Leiningen coordinates: `[preflex "0.2.0-alpha2"]`
+Leiningen coordinates: `[preflex "0.2.0-beta1"]`
 
 See [documentation](doc/intro.md)
 

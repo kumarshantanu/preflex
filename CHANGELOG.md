@@ -16,7 +16,7 @@ All notable changes to this project will be documented in this file. This change
   - Command
 
 
-## [WIP] 0.2.0-alpha3 / 2017-May-??
+## 0.2.0-beta1 / 2017-May-25
 ### Added
 - Binary semaphore with `preflex.core/make-binary-semaphore`
 - Optional kwarg `:fair?` in `preflex.core/make-circuit-breaker`

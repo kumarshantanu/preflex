@@ -45,6 +45,19 @@ A counting semaphore is useful to restrict the total number of concurrent tasks 
 (p/via-semaphore sem #(+ 40 50))
 ```
 
+Sometimes, a binary semaphore may be a clever way to avoid a mutex typically for idempotent side effects.
+
+```clojure
+;; allows only one permit, effectively behaving like a lock
+(def bi-sem (p/make-binary-semaphore))
+
+;; use just like counting-semaphore (see example above)
+(p/via-semaphore bi-sem #(+ 40 50))
+
+;; specify a rejection handler to avoid exception when permit/lock not acquired
+(p/via-semaphore bi-sem {:on-semaphore-reject (constantly nil)} #(+ 40 50))
+```
+
 
 ## Cutting off execution with circuit breakers
 
