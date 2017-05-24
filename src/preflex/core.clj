@@ -336,7 +336,9 @@
                                             ))
           v-state (volatile! (init-fn))
           ^Semaphore
-          bi-sema (Semaphore. 1 false)  ; binary semaphore
+          reinit-lock (Semaphore. 1 false)  ; binary semaphore
+          ^Semaphore
+          retry-lock  (Semaphore. 1 false)  ; binary semaphore
           h-shift (fn [^long ts]
                     (vswap! v-state assoc
                       :open-elapsed? true
@@ -345,11 +347,15 @@
                     true)]
       (reify
         clojure.lang.IDeref (deref   [_] @v-state)
-        t/IReinitializable  (reinit! [_] (locking v-state
-                                           (vreset! v-state (init-fn))))
-        t/IRetryResolver    (retry?  [_] (if (.tryAcquire bi-sema)
+        t/IReinitializable  (reinit! [_] (when (.tryAcquire reinit-lock)  ; consider concurrent re-init idempotent
                                            (try
-                                             (locking v-state
+                                             (locking v-state  ; lock against retry-test (see `retry?`)
+                                               (vreset! v-state (init-fn)))
+                                             (finally
+                                               (.release reinit-lock)))))
+        t/IRetryResolver    (retry?  [_] (if (.tryAcquire retry-lock)  ; only one retry allowed, so serial test is OK
+                                           (try
+                                             (locking v-state  ; lock against re-init (see `reinit!`)
                                                (let [^RetryState state @v-state
                                                      ts (now-finder)]
                                                  (if (:open-elapsed? state)
@@ -368,7 +374,7 @@
                                                      (h-shift ts)  ; shift to half-open and return true
                                                      false))))
                                              (finally
-                                               (.release bi-sema)))
+                                               (.release retry-lock)))
                                            ;; could not obtain soft-lock, another thread may be working, so disengage
                                            false))))))
 
