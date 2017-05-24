@@ -20,6 +20,7 @@ import preflex.instrument.task.CallTask;
 import preflex.instrument.task.CallTask2;
 import preflex.instrument.task.CallTask3;
 import preflex.instrument.task.InstrumentingWrapper;
+import preflex.util.Args;
 
 public class FutureWrapper<V, FutureEvent> implements Future<V> {
 
@@ -31,10 +32,12 @@ public class FutureWrapper<V, FutureEvent> implements Future<V> {
     public FutureWrapper(Future<V> future, ConcurrentEventFactory<?, FutureEvent, ?> eventFactory,
             EventHandlerFactory<FutureEvent> futureCancelEventHandlerFactory,
             EventHandlerFactory<FutureEvent> futureResultEventHandlerFactory) {
-        this.orig = future;
-        this.eventFactory = eventFactory;
-        this.futureCancelWrapper = new InstrumentingWrapper<>(futureCancelEventHandlerFactory);
-        this.futureResultWrapper = new InstrumentingWrapper<>(futureResultEventHandlerFactory);
+        this.orig = Args.notNull(future, "future");
+        this.eventFactory = Args.notNull(eventFactory, "eventFactory");
+        this.futureCancelWrapper = new InstrumentingWrapper<>(Args.notNull(futureCancelEventHandlerFactory,
+                "futureCancelEventHandlerFactory"));
+        this.futureResultWrapper = new InstrumentingWrapper<>(Args.notNull(futureResultEventHandlerFactory,
+                "futureResultEventHandlerFactory"));
     }
 
     public Future<V> getOrig() {

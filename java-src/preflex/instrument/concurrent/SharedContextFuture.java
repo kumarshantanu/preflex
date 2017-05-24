@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import preflex.instrument.SharedContext;
+import preflex.util.Args;
 
 public class SharedContextFuture<T, V> extends SharedContext<T> implements Future<V> {
 
@@ -23,7 +24,7 @@ public class SharedContextFuture<T, V> extends SharedContext<T> implements Futur
 
     public SharedContextFuture(Future<V> future, T context) {
         super(context);
-        this.orig = future;
+        this.orig = Args.notNull(future, "future");
     }
 
     @Override
