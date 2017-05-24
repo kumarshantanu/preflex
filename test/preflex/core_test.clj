@@ -89,7 +89,7 @@
     (.shutdown ^ExecutorService pool)))
 
 
-(deftest test-semaphore
+(deftest test-counting-semaphore
   (let [core-size 10
         pool-size 10
         queue-len 10
@@ -119,6 +119,21 @@
       (is (thrown-with-msg? ExceptionInfo #"Semaphore rejected execution"
             (p/with-semaphore sem {} (+ 2 3))) "Semaphore rejects acquisition when exhausted"))
     (.shutdown ^ExecutorService thread-pool)))
+
+
+(deftest test-binary-semaphore
+  (let [counter (atom 0)
+        idle #(u/sleep-millis 1000)
+        sem  (p/make-binary-semaphore {:name "test-semaphore"})
+        j-1  (future (p/via-semaphore sem #(do (swap! counter inc)
+                                             (idle))))]
+    ;; wait until the semaphore is taken
+    (while (zero? ^long @counter)
+      (u/sleep-millis 10))
+    (is (thrown-with-msg? ExceptionInfo #"Semaphore rejected execution"
+          (p/via-semaphore sem #(+ 2 3))) "Semaphore rejects acquisition when exhausted")
+    (deref j-1)  ; wait for idle
+    (is (= 1 @counter))))
 
 
 (deftest test-serial-fault-detector

@@ -15,10 +15,11 @@ All notable changes to this project will be documented in this file. This change
 
 ## [WIP] 0.2.0-alpha3 / 2017-May-??
 ### Added
-- [Todo] Introduce binary semaphore `preflex.core/make-binary-semaphore`
+- [Todo] Add `ITerminable` protocol for things that can be terminated (e.g. thread-pool, semaphore)
+- Add binary semaphore with `preflex.core/make-binary-semaphore`
 
 ### Fixed
-- [Todo] Use binary semaphore instead of `locking` in circuit breaker implementation
+- [Todo] Use binary semaphore instead of `locking` in idempotent scenarios (circuit breaker impl)
 
 
 ## 0.2.0-alpha2 / 2017-April-20
@@ -47,6 +48,14 @@ All notable changes to this project will be documented in this file. This change
 ## 0.1.0-alpha1 / 2017-March-07
 ### Added
 - Resilience primitives in namespace `preflex.core`
+  - Bounded thread pool
+  - Counting semahore
+  - Circuit breaker
+  - Success/failure tracker
+  - Fallback
 - Metrics primitives in namespace `preflex.metrics`
+  - Ordinary counter
+  - Rolling counter
+  - Rolling collector
 - Instrumentation
   - Task definition

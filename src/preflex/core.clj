@@ -185,6 +185,21 @@
     (make-counting-semaphore max-permits {})))
 
 
+(defn make-binary-semaphore
+  "Given max permits count, create and return a binary semaphore.
+  Options:
+    :name  (any type) semaphore name, coerced as string
+    :fair? (boolean)  whether semaphore should use fair acquisition"
+  ([{semaphore-name  :name
+     semaphore-fair? :fair?
+     :or {semaphore-name (gensym "counting-semaphore-")
+          semaphore-fair? false}}]
+    (let [^Semaphore semaphore (Semaphore. 1 (boolean semaphore-fair?))]
+      (im/->CountingSemaphore (in/as-str semaphore-name) semaphore false 1)))
+  ([]
+    (make-binary-semaphore {})))
+
+
 (defn via-semaphore
   "Execute given task (no-arg fn) using specified semaphore. Acquire a permit and execute task before finally releasing
   the permit. Handle events on-acquired, on-released, on-rejected using optional handlers. When no permit is available,
