@@ -388,12 +388,15 @@
     sets circuit-breaker into connected state, whereas failure may set circuit breaker into tripped state.
   Options:
     :name       (any type) circuit-breaker name, coerced as string
+    :fair?      (boolean)  whether state-transition should be fair across threads
     :on-trip    (fn/1)     called when circuit breaker switches from connected to tripped state
     :on-connect (fn/1)     called when circuit breaker switches from tripped to connected state"
   ([fault-detector retry-resolver {circuit-breaker-name :name
-                                   :keys [on-trip
+                                   :keys [fair?
+                                          on-trip
                                           on-connect]
                                    :or {circuit-breaker-name (gensym "circuit-breaker-")
+                                        fair?      false
                                         on-trip    in/nop
                                         on-connect in/nop}
                                    :as options}]
@@ -404,6 +407,8 @@
                    (u/now-millis)))
       fault-detector
       retry-resolver
+      (Semaphore. 1 (boolean fair?))  ; trip-lock
+      (Semaphore. 1 (boolean fair?))  ; conn-lock
       on-trip
       on-connect))
   ([fault-detector retry-resolver]

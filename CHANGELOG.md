@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file. This change
 
 ## TODO
 
+- Generic kill switch
+  - Protocl `ITerminable` with `terminate` and `terminated?` fns
+  - Have the stateful abstractions (thread pool, semaphore etc.) implement `ITerminable`
 - Instrumentation
   - JDBC (including top slow queries)
 - Resilience primitives
@@ -15,11 +18,12 @@ All notable changes to this project will be documented in this file. This change
 
 ## [WIP] 0.2.0-alpha3 / 2017-May-??
 ### Added
-- [Todo] Add `ITerminable` protocol for things that can be terminated (e.g. thread-pool, semaphore)
-- Add binary semaphore with `preflex.core/make-binary-semaphore`
+- Binary semaphore with `preflex.core/make-binary-semaphore`
+- Optional kwarg `:fair?` in `preflex.core/make-circuit-breaker`
 
 ### Fixed
-- [Todo] Use binary semaphore instead of `locking` in idempotent scenarios (circuit breaker impl)
+- Use binary semaphore instead of `clojure.core/locking` (mutex) in idempotent scenarios (circuit breaker impl)
+- [Todo] Use binary semaphore instead of `synchronized` (mutex) in idempotent scenarios (Java code)
 
 
 ## 0.2.0-alpha2 / 2017-April-20

@@ -102,6 +102,8 @@
    volatile-circuit-breaker-state ; a CircuitBreakerState instance (see above)
    fault-detector                 ; stateful fault detector
    retry-resolver                 ; stateful retry resolver
+   ^Semaphore trip-lock           ; binary semaphore to isolate transition connected-state => tripped-state
+   ^Semaphore conn-lock           ; binary semaphore to isolate transition tripped-state => connected-state
    on-trip    ; arity-1 fn
    on-connect ; arity-fn
    ]
@@ -114,38 +116,42 @@
   (allow? [this]
     (let [cb-state @volatile-circuit-breaker-state]
       (if (:state-connected? cb-state)
-        ;; connected, so check whether error-count has exceeded threshold - if yes, then switch to tripped
+        ;; connected, so check whether it has entered fault state - if yes, then switch to tripped
         (if (t/fault? fault-detector)
-          (let [ts (u/now-millis)]
-            (locking this
+          (if (.tryAcquire trip-lock)
+            (try
               (if (t/fault? fault-detector)
                 (do
                   ;; trip the circuit and set state to "open"
                   (vswap! volatile-circuit-breaker-state assoc
                     :state-connected? false
-                    :state-since-millis ts)
+                    :state-since-millis (u/now-millis))
                   (t/reinit! retry-resolver)
                   (on-trip this)
                   false)
-                true)))
+                true)
+              (finally
+                (.release trip-lock)))
+            (not (t/fault? fault-detector)))
           true)
         ;; tripped, so check whether it is time to retry (again, since last retry)
         (t/retry? retry-resolver))))
   (mark! [this status?]
     (if status?
-      ;; it is success, so we should put circuit-breaker back into connected state (if not already)
-      (if (:state-connected? @volatile-circuit-breaker-state) ; tripped state, so we should switch to connected
+      ;; it is success, so we should put circuit-breaker back into connected state if not already
+      (if (:state-connected? @volatile-circuit-breaker-state)
         (t/record! fault-detector true)
-        (do
-          (t/reinit! fault-detector)
-          (let [ts (u/now-millis)]
-            (locking this
-              (when-not (:state-connected? @volatile-circuit-breaker-state)
-                (vswap! volatile-circuit-breaker-state assoc
-                  :state-connected? true
-                  :state-since-millis ts)
-                (on-connect this)
-                nil)))))
+        (when (.tryAcquire conn-lock)  ; tripped state, so we should switch to connected
+          (try
+            (when-not (:state-connected? @volatile-circuit-breaker-state)
+              (t/reinit! fault-detector)
+              (vswap! volatile-circuit-breaker-state assoc
+                :state-connected? true
+                :state-since-millis (u/now-millis))
+              (on-connect this)
+              nil)
+            (finally
+              (.release conn-lock)))))
       ;; status is failure, so record failure if connected (do nothing if tripped)
       (when (:state-connected? @volatile-circuit-breaker-state)
         ;; record failure for connected state
