@@ -21,9 +21,12 @@ All notable changes to this project will be documented in this file. This change
 - Binary semaphore with `preflex.core/make-binary-semaphore`
 - Optional kwarg `:fair?` in `preflex.core/make-circuit-breaker`
 
+### Changed
+- Protocol fn `preflex.type.IReinitializable/reinit!` is now potentially asynchronous
+- Protocol fn `preflex.type.IMetricsRecorder/record!` is now potentially asynchronous
+
 ### Fixed
 - Use binary semaphore instead of `clojure.core/locking` (mutex) in idempotent scenarios (circuit breaker impl)
-- [Todo] Use binary semaphore instead of `synchronized` (mutex) in idempotent scenarios (Java code)
 
 
 ## 0.2.0-alpha2 / 2017-April-20

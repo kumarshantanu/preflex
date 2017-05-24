@@ -83,7 +83,7 @@
 
 
 (defprotocol IMetricsRecorder
-  (record! [this] [this v] "Record metrics event"))
+  (record! [this] [this v] "Record metrics event. Not guaranteed to be synchronous."))
 
 
 (defprotocol IMetricsStore
@@ -91,7 +91,7 @@
 
 
 (defprotocol IReinitializable
-  (reinit! [this] "Reset the configuration"))
+  (reinit! [this] "Reset the configuration. Not guaranteed to be synchronous."))
 
 
 (defrecord SampleMetrics
