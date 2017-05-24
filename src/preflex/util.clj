@@ -38,7 +38,7 @@
   (^long []
     (System/currentTimeMillis))
   (^long [^long start-millis]
-    (- (System/currentTimeMillis) start-millis)))
+    (unchecked-subtract (System/currentTimeMillis) start-millis)))
 
 
 (defn now-nanos
@@ -46,7 +46,7 @@
   (^long []
     (System/nanoTime))
   (^long [^long start-nanos]
-    (- (System/nanoTime) start-nanos)))
+    (unchecked-subtract (System/nanoTime) start-nanos)))
 
 
 (defn now-iso-8601
