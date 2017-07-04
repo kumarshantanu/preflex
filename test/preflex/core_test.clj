@@ -20,73 +20,79 @@
     [clojure.lang ExceptionInfo]))
 
 
+(def ^:const core-size 10)
+(def ^:const pool-size 20)
+(def ^:const queue-len 30)
+
+(defmacro with-test-pool
+  [pool & body]
+  (assert (symbol? pool))
+  `(let [~pool (p/make-bounded-thread-pool pool-size queue-len {:name "test-pool"
+                                                                :core-thread-count core-size})]
+     ~@body
+     (.shutdown ~(vary-meta pool assoc :tag "ExecutorService"))))
+
+
 (deftest test-thread-pool
-  (let [core-size 10
-        pool-size 20
-        queue-len 30
-        pool (p/make-bounded-thread-pool pool-size queue-len {:name "test-pool"
-                                                              :core-thread-count core-size})
-        idle #(u/sleep-millis 1000)
+  (let [idle #(u/sleep-millis 1000)
         sint (atom 1)]
-    (is (= "test-pool" (name pool)))
+    (with-test-pool pool
+      (is (= "test-pool" (name pool))))
     (testing "raw thread pool"
-      (is (instance? ExecutorService pool) "created instance is a thread-pool")
-      (p/future-call-via pool #(swap! sint inc))
-      (idle) ; wait for some time hoping the task would be executed
-      (is (= 2 @sint) "thread-pool task updates the accumulator")
+      (with-test-pool pool
+        (is (instance? ExecutorService pool) "created instance is a thread-pool")
+        (is (= 2 @(p/future-call-via pool #(swap! sint inc))))
+        (is (= 2 @sint) "thread-pool task updates the accumulator"))
       ;; submit enough tasks to fill up the thread pool
-      (dotimes [i (+ pool-size queue-len)]
-        (p/future-call-via pool idle))
-      (is (thrown-with-msg? ExceptionInfo #"Thread-pool rejected execution"
-            (p/future-call-via pool idle)) "any more task submission should be rejected")
-      ;; wait for tasks to be drained
-      (idle))
+      (with-test-pool pool
+        (dotimes [i (+ pool-size queue-len)]
+          (p/future-call-via pool idle))
+        (is (thrown-with-msg? ExceptionInfo #"Thread-pool rejected execution"
+              (p/future-call-via pool idle)) "any more task submission should be rejected")))
     (testing "with-async-executor"
       ;; normal execution
-      (idle)  ; wait for stale tasks to be drained
-      (idle)
-      (is (= 30 (p/via-thread-pool pool {:task-timeout [1000 :millis]} #(+ 10 20)))
-        "direct - instantenous async task")
-      (is (= 30 ((p/wrap-thread-pool pool {:task-timeout [1000 :millis]} #(+ 10 20))))
-        "wrapper - instantenous async task")
-      (is (= 30 (p/with-thread-pool pool {:task-timeout [1000 :millis]} (+ 10 20)))
-        "macro - instantenous async task")
+      (with-test-pool pool
+        (is (= 30 (p/via-thread-pool pool {:task-timeout [1000 :millis]} #(+ 10 20)))
+          "direct - instantenous async task")
+        (is (= 30 ((p/wrap-thread-pool pool {:task-timeout [1000 :millis]} #(+ 10 20))))
+          "wrapper - instantenous async task")
+        (is (= 30 (p/with-thread-pool pool {:task-timeout [1000 :millis]} (+ 10 20)))
+          "macro - instantenous async task"))
       ;; timeout
-      (idle)
-      (is (thrown-with-msg? ExceptionInfo #"Operation timed out"
-            (p/via-thread-pool pool {:task-timeout [100 :millis]} idle))
-        "direct - timed out async task")
-      (is (thrown-with-msg? ExceptionInfo #"Operation timed out"
-            ((p/wrap-thread-pool pool {:task-timeout [100 :millis]} idle)))
-        "wrapper - timed out async task")
-      (is (thrown-with-msg? ExceptionInfo #"Operation timed out"
-            (p/with-thread-pool pool {:task-timeout [100 :millis]} (idle)))
-        "macro - timed out async task")
+      (with-test-pool pool
+        (is (thrown-with-msg? ExceptionInfo #"Operation timed out"
+              (p/via-thread-pool pool {:task-timeout [100 :millis]} idle))
+          "direct - timed out async task")
+        (is (thrown-with-msg? ExceptionInfo #"Operation timed out"
+              ((p/wrap-thread-pool pool {:task-timeout [100 :millis]} idle)))
+          "wrapper - timed out async task")
+        (is (thrown-with-msg? ExceptionInfo #"Operation timed out"
+              (p/with-thread-pool pool {:task-timeout [100 :millis]} (idle)))
+          "macro - timed out async task"))
       ;; execution error
-      (idle)
-      (is (thrown-with-msg? ExceptionInfo #"Exception occurred"
-            (p/via-thread-pool pool {:task-timeout [100 :millis]} #(throw (Exception. "foo"))))
-        "direct - error async task")
-      (is (thrown-with-msg? ExceptionInfo #"Exception occurred"
-            ((p/wrap-thread-pool pool {:task-timeout [100 :millis]} #(throw (Exception. "foo")))))
-        "wrapper - error async task")
-      (is (thrown-with-msg? ExceptionInfo #"Exception occurred"
-            (p/with-thread-pool pool {:task-timeout [100 :millis]} (throw (Exception. "foo"))))
-        "macro - error async task")
+      (with-test-pool pool
+        (is (thrown-with-msg? ExceptionInfo #"Exception occurred"
+              (p/via-thread-pool pool {:task-timeout [100 :millis]} #(throw (Exception. "foo"))))
+          "direct - error async task")
+        (is (thrown-with-msg? ExceptionInfo #"Exception occurred"
+              ((p/wrap-thread-pool pool {:task-timeout [100 :millis]} #(throw (Exception. "foo")))))
+          "wrapper - error async task")
+        (is (thrown-with-msg? ExceptionInfo #"Exception occurred"
+              (p/with-thread-pool pool {:task-timeout [100 :millis]} (throw (Exception. "foo"))))
+          "macro - error async task"))
       ;; submission rejection
-      (idle)
-      (dotimes [i (+ pool-size queue-len)]
-        (p/future-call-via pool idle))
-      (is (thrown-with-msg? ExceptionInfo #"Thread-pool rejected execution"
-            (p/via-thread-pool pool {:task-timeout [100 :millis]} #(+ 10 20)))
-        "direct - any more task submission should be rejected")
-      (is (thrown-with-msg? ExceptionInfo #"Thread-pool rejected execution"
-            ((p/wrap-thread-pool pool {:task-timeout [100 :millis]} #(+ 10 20))))
-        "wrapper - any more task submission should be rejected")
-      (is (thrown-with-msg? ExceptionInfo #"Thread-pool rejected execution"
-            (p/with-thread-pool pool {:task-timeout [100 :millis]} (+ 10 20)))
-        "macro - any more task submission should be rejected"))
-    (.shutdown ^ExecutorService pool)))
+      (with-test-pool pool
+        (dotimes [i (+ pool-size queue-len)]
+          (p/future-call-via pool idle))
+        (is (thrown-with-msg? ExceptionInfo #"Thread-pool rejected execution"
+              (p/via-thread-pool pool {:task-timeout [100 :millis]} #(+ 10 20)))
+          "direct - any more task submission should be rejected")
+        (is (thrown-with-msg? ExceptionInfo #"Thread-pool rejected execution"
+              ((p/wrap-thread-pool pool {:task-timeout [100 :millis]} #(+ 10 20))))
+          "wrapper - any more task submission should be rejected")
+        (is (thrown-with-msg? ExceptionInfo #"Thread-pool rejected execution"
+              (p/with-thread-pool pool {:task-timeout [100 :millis]} (+ 10 20)))
+          "macro - any more task submission should be rejected")))))
 
 
 (deftest test-counting-semaphore

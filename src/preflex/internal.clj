@@ -64,6 +64,8 @@
 
 (defn deref-future
   "Deref a java.util.concurrent.Future object."
+  ([^Future future]
+    (deref-future future {}))
   ([^Future future {:keys [on-deref-error]
                     :or {on-deref-error nop}}]
      (try
@@ -71,6 +73,8 @@
        (catch Exception e
          (on-deref-error e)
          (throw e))))
+  ([^Future future timeout-ms timeout-val]
+    (deref-future future timeout-ms timeout-val {}))
   ([^Future future timeout-ms timeout-val {:keys [on-deref-error
                                                   on-deref-timeout]
                                            :or {on-deref-error   nop
