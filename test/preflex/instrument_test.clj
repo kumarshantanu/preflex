@@ -45,36 +45,72 @@
                               :callable-decorator  instru/default-shared-context-callable-decorator
                               :runnable-decorator  instru/default-shared-context-runnable-decorator)))]
         (let [^FutureWrapper fut (.submit ^ExecutorService instru-pool ^Runnable #(do 10))
-              ^SharedContextFuture scf (.getOrig fut)]
+              ^SharedContextFuture scf (.getOrig fut)
+              shared-context (.getContext scf)]
           (is (instance? FutureWrapper fut))
           (is (instance? SharedContextFuture scf))
-          (is (contains? @(.getContext scf) :submit-begin-ms))
-          (is (nil? @fut)))
+          (is (contains? @shared-context :submit-begin-ms))
+          (is (contains? @shared-context :submit-end-ms))
+          (is (nil? @fut))
+          (is (contains? @shared-context :execute-begin-ms))
+          (is (contains? @shared-context :execute-end-ms))
+          (is (contains? @shared-context :result-begin-ms))
+          (is (contains? @shared-context :result-end-ms))
+          (is (contains? @shared-context :duration-queue-ms))
+          (is (contains? @shared-context :duration-execute-ms))
+          (is (contains? @shared-context :duration-response-ms)))
         (let [^FutureWrapper fut (.submit ^ExecutorService instru-pool ^Callable #(do 10))
-              ^SharedContextFuture scf (.getOrig fut)]
+              ^SharedContextFuture scf (.getOrig fut)
+              shared-context (.getContext scf)]
           (is (instance? FutureWrapper fut))
           (is (instance? SharedContextFuture scf))
-          (is (contains? @(.getContext scf) :submit-begin-ms))
-          (is (= 10 @fut))))))
+          (is (contains? @shared-context :submit-begin-ms))
+          (is (contains? @shared-context :submit-end-ms))
+          (is (= 10 @fut))
+          (is (contains? @shared-context :execute-begin-ms))
+          (is (contains? @shared-context :execute-end-ms))
+          (is (contains? @shared-context :result-begin-ms))
+          (is (contains? @shared-context :result-end-ms))
+          (is (contains? @shared-context :duration-queue-ms))
+          (is (contains? @shared-context :duration-execute-ms))
+          (is (contains? @shared-context :duration-response-ms))))))
   (testing "invoker with shared context instrumentation"
     (with-active-thread-pool [^ExecutorService thread-pool (core/make-bounded-thread-pool 10 10)]
-      (let [invoker (fn [g volatile-context] (vswap! volatile-context assoc :added-by-invoker 20) (g))
+      (let [invoker (fn [g context-atom] (swap! context-atom assoc :added-by-invoker 20) (g))
             instru-pool (instru/instrument-thread-pool thread-pool
                           (-> instru/shared-context-thread-pool-event-handlers-nanos
                             (assoc
                               :callable-decorator  (instru/make-shared-context-callable-decorator invoker)
                               :runnable-decorator  (instru/make-shared-context-runnable-decorator invoker))))]
         (let [^FutureWrapper fut (.submit ^ExecutorService instru-pool ^Runnable #(do 10))
-              ^SharedContextFuture scf (.getOrig fut)]
+              ^SharedContextFuture scf (.getOrig fut)
+              shared-context (.getContext scf)]
           (is (instance? FutureWrapper fut))
           (is (instance? SharedContextFuture scf))
-          (is (contains? @(.getContext scf) :submit-begin-ns))
-          (is (= 20 (get @(.getContext scf) :added-by-invoker)))
-          (is (nil? @fut)))
+          (is (contains? @shared-context :submit-begin-ns))
+          (is (contains? @shared-context :submit-end-ns))
+          (is (= 20 (get @shared-context :added-by-invoker)))
+          (is (nil? @fut))
+          (is (contains? @shared-context :execute-begin-ns))
+          (is (contains? @shared-context :execute-end-ns))
+          (is (contains? @shared-context :result-begin-ns))
+          (is (contains? @shared-context :result-end-ns))
+          (is (contains? @shared-context :duration-queue-ns))
+          (is (contains? @shared-context :duration-execute-ns))
+          (is (contains? @shared-context :duration-response-ns)))
         (let [^FutureWrapper fut (.submit ^ExecutorService instru-pool ^Callable #(do 10))
-              ^SharedContextFuture scf (.getOrig fut)]
+              ^SharedContextFuture scf (.getOrig fut)
+              shared-context (.getContext scf)]
           (is (instance? FutureWrapper fut))
           (is (instance? SharedContextFuture scf))
-          (is (contains? @(.getContext scf) :submit-begin-ns))
-          (is (= 20 (get @(.getContext scf) :added-by-invoker)))
-          (is (= 10 @fut)))))))
+          (is (contains? @shared-context :submit-begin-ns))
+          (is (contains? @shared-context :submit-end-ns))
+          (is (= 20 (get @shared-context :added-by-invoker)))
+          (is (= 10 @fut))
+          (is (contains? @shared-context :execute-begin-ns))
+          (is (contains? @shared-context :execute-end-ns))
+          (is (contains? @shared-context :result-begin-ns))
+          (is (contains? @shared-context :result-end-ns))
+          (is (contains? @shared-context :duration-queue-ns))
+          (is (contains? @shared-context :duration-execute-ns))
+          (is (contains? @shared-context :duration-response-ns)))))))

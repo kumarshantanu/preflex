@@ -141,37 +141,37 @@
 
 
 (defn make-shared-context-callable-decorator
-  "Given invoker fn (arity 2), return a preflex.instrument.concurrent.CallableDecorator instance that initializes
-  shared context with a volatile seed and calls (invoker callable-as-no-arg-fn volatile-context)."
-  [f]
+  "Given invoker `(fn [f context-atom]) -> any`, return a preflex.instrument.concurrent.CallableDecorator instance
+  that initializes shared context with a mutable seed and calls the invoker, `f` being callable-as-no-arg-fn."
+  [invoker]
   (reify CallableDecorator
-    (wrapCallable [this callable] (let [volatile-context (volatile! {})
+    (wrapCallable [this callable] (let [context-atom (atom {})
                                         wrapped-callable (reify Callable
-                                                           (call [this] (f #(.call callable) volatile-context)))]
-                                    (SharedContextCallable. wrapped-callable volatile-context)))))
+                                                           (call [this] (invoker #(.call callable) context-atom)))]
+                                    (SharedContextCallable. wrapped-callable context-atom)))))
 
 
 (defn make-shared-context-runnable-decorator
-  "Given invoker fn (arity 2), return a preflex.instrument.concurrent.RunnableDecorator instance that initializes
-  shared context with a volatile seed and calls (invoker runnable-as-no-arg-fn volatile-context)."
-  [f]
+  "Given invoker `(fn [f context-atom])`, return a preflex.instrument.concurrent.RunnableDecorator instance that
+  initializes shared context with a mutable seed and calls the invoker, `f` being runnable-as-no-arg-fn."
+  [invoker]
   (reify RunnableDecorator
-    (wrapRunnable [this runnable] (let [volatile-context (volatile! {})
+    (wrapRunnable [this runnable] (let [context-atom (atom {})
                                         wrapped-runnable (reify Runnable
-                                                           (run [this] (f #(.run runnable) volatile-context)))]
-                                    (SharedContextRunnable. wrapped-runnable volatile-context)))))
+                                                           (run [this] (invoker #(.run runnable) context-atom)))]
+                                    (SharedContextRunnable. wrapped-runnable context-atom)))))
 
 
 (def default-shared-context-callable-decorator
-  "A preflex.instrument.concurrent.CallableDecorator instance that initializes shared context with a volatile map."
+  "A preflex.instrument.concurrent.CallableDecorator instance that initializes shared context with (atom {})."
   (reify CallableDecorator
-    (wrapCallable [this callable] (SharedContextCallable. callable (volatile! {})))))
+    (wrapCallable [this callable] (SharedContextCallable. callable (atom {})))))
 
 
 (def default-shared-context-runnable-decorator
-  "A preflex.instrument.concurrent.RunnableDecorator instance that initializes shared context with a volatile map."
+  "A preflex.instrument.concurrent.RunnableDecorator instance that initializes shared context with (atom {})."
   (reify RunnableDecorator
-    (wrapRunnable [this runnable] (SharedContextRunnable. runnable (volatile! {})))))
+    (wrapRunnable [this runnable] (SharedContextRunnable. runnable (atom {})))))
 
 
 (defn make-shared-context-thread-pool-event-handlers
@@ -191,8 +191,8 @@
            k-future-result-end]}]
   (let [after-submit   (fn [event-k event]
                          (shared-context-update-event event event-k
-                           (fn [volatile-context]
-                             (vswap! volatile-context
+                           (fn [context-atom]
+                             (swap! context-atom
                                (fn [{^long submit-begin-ts k-submit-begin
                                      :as context}]
                                  (let [^long now-ts (now-fn)
@@ -202,8 +202,8 @@
                                      k-duration-submit duration-submit)))))))
         before-execute (fn [event-k event]
                          (shared-context-update-event event event-k
-                           (fn [volatile-context]
-                             (vswap! volatile-context
+                           (fn [context-atom]
+                             (swap! context-atom
                                (fn [{^long submit-begin-ts k-submit-begin
                                      :as context}]
                                  (let [^long now-ts (now-fn)
@@ -213,8 +213,8 @@
                                      k-duration-queue  duration-queue)))))))
         after-execute  (fn [event-k event]
                          (shared-context-update-event event event-k
-                           (fn [volatile-context]
-                             (vswap! volatile-context
+                           (fn [context-atom]
+                             (swap! context-atom
                                (fn [{^long submit-begin-ts  k-submit-begin
                                      ^long execute-begin-ts k-execute-begin
                                      :as context}]
@@ -227,8 +227,8 @@
                                      k-duration-response duration-response)))))))
         assoc-context  (fn [event-k context-k event]
                          (shared-context-update-event event event-k
-                           (fn [volatile-context]
-                             (vswap! volatile-context
+                           (fn [context-atom]
+                             (swap! context-atom
                                (fn [context]
                                  (assoc context context-k (now-fn)))))))]
     {:on-callable-submit  {:before (partial assoc-context  :callable k-submit-begin)

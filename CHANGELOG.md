@@ -18,7 +18,7 @@ All notable changes to this project will be documented in this file. This change
 
 ## [WIP] 0.2.0 / 2017-July-??
 ### Fixed
-- [TODO] Fix race condition in thread-pool instrumentation - https://github.com/kumarshantanu/preflex/issues/1
+- Fix race condition in thread-pool instrumentation - https://github.com/kumarshantanu/preflex/issues/1
 - [TODO] Fast thread-pool instrumentation support with limited stages
 
 
