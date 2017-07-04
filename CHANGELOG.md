@@ -16,6 +16,12 @@ All notable changes to this project will be documented in this file. This change
   - Command
 
 
+## [WIP] 0.2.0 / 2017-July-??
+### Fixed
+- [TODO] Fix race condition in thread-pool instrumentation - https://github.com/kumarshantanu/preflex/issues/1
+- [TODO] Fast thread-pool instrumentation support with limited stages
+
+
 ## 0.2.0-beta1 / 2017-May-25
 ### Added
 - Binary semaphore with `preflex.core/make-binary-semaphore`

@@ -1,4 +1,4 @@
-(defproject preflex "0.2.0-beta1"
+(defproject preflex "0.2.0-SNAPSHOT"
   :description "Metrics, Instrumentation and Resilience for Clojure"
   :url "https://github.com/kumarshantanu/preflex"
   :license {:name "Eclipse Public License"
@@ -13,6 +13,6 @@
                         :global-vars {*unchecked-math* :warn-on-boxed}}
              :c17 {:dependencies [[org.clojure/clojure "1.7.0"]]}
              :c18 {:dependencies [[org.clojure/clojure "1.8.0"]]}
-             :c19 {:dependencies [[org.clojure/clojure "1.9.0-alpha16"]]}
+             :c19 {:dependencies [[org.clojure/clojure "1.9.0-alpha17"]]}
              :dln {:jvm-opts ["-Dclojure.compiler.direct-linking=true"]}}
   :deploy-repositories [["releases" {:url "https://clojars.org" :creds :gpg}]])
