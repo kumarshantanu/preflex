@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file. This change
   - Have the stateful abstractions (thread pool, semaphore etc.) implement `ITerminable`
 - Instrumentation
   - JDBC (including top slow queries)
+  - Fast (using `volatile!`) thread-pool instrumentation with limited stages
 - Resilience primitives
   - Move to namespace `preflex.resilience`
   - Retry
@@ -20,7 +21,6 @@ All notable changes to this project will be documented in this file. This change
 ### Fixed
 - Fix race condition in thread-pool instrumentation - https://github.com/kumarshantanu/preflex/issues/1
 - Fix arity-mismatch issue in `deref` use-case of `preflex.core/future-call-via`
-- [TODO] Fast thread-pool instrumentation support with limited stages
 
 
 ## 0.2.0-beta1 / 2017-May-25
