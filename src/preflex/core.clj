@@ -12,7 +12,7 @@
   * Bounded thread pool - (compared to unbounded thread pool) helps keep computation and memory consumption in check
   * Circuit breaker     - cuts off execution when a resource is unavailable, and resumes when it is available again
   * Semaphore           - limits total number of clients competing for resources
-  * Fallback            - When primary computation fails, fall back on standby"
+  * Fallback            - When primary computation fails, fall back to standby"
   (:require
     [preflex.impl      :as im]
     [preflex.internal  :as in]
