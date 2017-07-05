@@ -17,7 +17,7 @@ All notable changes to this project will be documented in this file. This change
   - Command
 
 
-## [WIP] 0.2.0 / 2017-July-??
+## 0.2.0 / 2017-July-05
 ### Fixed
 - Fix race condition in thread-pool instrumentation - https://github.com/kumarshantanu/preflex/issues/1
 - Fix arity-mismatch issue in `deref` use-case of `preflex.core/future-call-via`

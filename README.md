@@ -23,11 +23,13 @@ Preflex provides the following facilities:
   * Rolling (sliding-window) store
   * Sharding with metrics collection/reporting
 
+
 ## Usage
 
-Leiningen coordinates: `[preflex "0.2.0-beta1"]`
+Leiningen coordinates: `[preflex "0.2.0"]`
 
 See [documentation](doc/intro.md)
+
 
 ## License
 
