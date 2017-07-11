@@ -6,15 +6,19 @@ All notable changes to this project will be documented in this file. This change
 - Generic kill switch
   - Protocl `ITerminable` with `terminate` and `terminated?` fns
   - Have the stateful abstractions (thread pool, semaphore etc.) implement `ITerminable`
-- Instrumentation
-  - JDBC (including top slow queries)
-  - Fast (using `volatile!`) thread-pool instrumentation with limited stages
 - Resilience primitives
   - Move to namespace `preflex.resilience`
   - Retry
   - Throttle
 - Hystrix emulation
   - Command
+
+
+## [WIP] 0.3.0 / 2017-July-??
+
+- Instrumentation
+  - [TODO] JDBC (including top slow queries)
+  - [TODO] Fast (using `volatile!`) thread-pool instrumentation with limited stages
 
 
 ## 0.2.0 / 2017-July-05
