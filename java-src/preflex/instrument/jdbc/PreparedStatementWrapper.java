@@ -35,12 +35,13 @@ import java.util.Calendar;
 import preflex.instrument.EventHandlerFactory;
 import preflex.instrument.task.CallTask1;
 import preflex.instrument.task.InstrumentingWrapper;
+import preflex.instrument.task.Wrapper;
 
 public class PreparedStatementWrapper<SQLExecution> extends StatementWrapper<SQLExecution>
 implements PreparedStatement {
 
     private final PreparedStatement pstmt;
-    private final InstrumentingWrapper<SQLExecution> sqlExecutionWrapper;
+    private final Wrapper<SQLExecution> sqlExecutionWrapper;
     private final SQLExecution preparedStatementQueryEvent;
     private final SQLExecution preparedStatementUpdateEvent;
     private final SQLExecution preparedStatementSQLEvent;

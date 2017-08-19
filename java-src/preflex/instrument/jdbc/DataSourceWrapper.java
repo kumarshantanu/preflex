@@ -21,12 +21,13 @@ import javax.sql.DataSource;
 import preflex.instrument.EventHandlerFactory;
 import preflex.instrument.task.CallTask1;
 import preflex.instrument.task.InstrumentingWrapper;
+import preflex.instrument.task.Wrapper;
 
 public class DataSourceWrapper<JdbcConnectionCreation, JdbcStatementCreation, SQLExecution> implements DataSource {
 
     private final DataSource ds;
     private final JdbcEventFactory<JdbcConnectionCreation, JdbcStatementCreation, SQLExecution> eventFactory;
-    private final InstrumentingWrapper<JdbcConnectionCreation> connCreationWrapper;
+    private final Wrapper<JdbcConnectionCreation> connCreationWrapper;
     private final EventHandlerFactory<JdbcStatementCreation> stmtCreationListener;
     private final EventHandlerFactory<SQLExecution> sqlExecutionListener;
 

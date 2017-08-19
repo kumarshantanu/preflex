@@ -32,12 +32,13 @@ import java.util.concurrent.Executor;
 import preflex.instrument.EventHandlerFactory;
 import preflex.instrument.task.CallTask1;
 import preflex.instrument.task.InstrumentingWrapper;
+import preflex.instrument.task.Wrapper;
 
 public class ConnectionWrapper<JdbcStatementCreation, SQLExecution> implements Connection {
 
     private final Connection conn;
     private final JdbcEventFactory<?, JdbcStatementCreation, SQLExecution> eventFactory;
-    private final InstrumentingWrapper<JdbcStatementCreation> stmtCreationWrapper;
+    private final Wrapper<JdbcStatementCreation> stmtCreationWrapper;
     private final EventHandlerFactory<SQLExecution> sqlExecutionListener;
 
     public ConnectionWrapper(final Connection conn,

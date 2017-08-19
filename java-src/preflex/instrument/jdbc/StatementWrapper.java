@@ -19,13 +19,14 @@ import java.sql.Statement;
 import preflex.instrument.EventHandlerFactory;
 import preflex.instrument.task.CallTask1;
 import preflex.instrument.task.InstrumentingWrapper;
+import preflex.instrument.task.Wrapper;
 
 public class StatementWrapper<SQLExecution> implements Statement {
 
     private final Connection conn;
     private final Statement stmt;
     private final JdbcEventFactory<?, ?, SQLExecution> eventFactory;
-    private final InstrumentingWrapper<SQLExecution> sqlExecutionWrapper;
+    private final Wrapper<SQLExecution> sqlExecutionWrapper;
 
     public StatementWrapper(final Connection conn, final Statement stmt,
             final JdbcEventFactory<?, ?, SQLExecution> eventFactory,
