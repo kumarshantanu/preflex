@@ -12,7 +12,7 @@
     [preflex.internal :as i])
   (:import
     [preflex.instrument      EventHandler EventHandlerFactory]
-    [preflex.instrument.task InstrumentingWrapper Wrapper]))
+    [preflex.instrument.task Wrapper]))
 
 
 (defn make-wrapper
