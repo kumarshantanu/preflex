@@ -9,7 +9,8 @@
 
 (ns preflex.internal
   (:require
-    [preflex.type :as t])
+    [clojure.reflect :as r]
+    [preflex.type    :as t])
   (:import
     [java.util.concurrent Future TimeoutException TimeUnit]))
 
@@ -87,3 +88,53 @@
        (catch Exception e
          (on-deref-error e)
          (throw e)))))
+
+
+;; ===== interfaces and classes =====
+
+
+(defn public-method?
+  "Return true if method spec belongs to a public method, false otherwise."
+  [method-spec]
+  (and
+    ;; truthy result implies this is a method
+    (:return-type method-spec)
+    ;; ensure not a constructor name
+    (neg? (.indexOf (str (:name method-spec)) "."))
+    ;; public methods only
+    (get-in method-spec [:flags :public])))
+
+
+(defn type-methods
+  "Given a collection of class and interface symbols, discover methods using reflection and return the ones to be
+  implemented using Clojure. The key :arity (value: integer) is added to each spec to indicate the method arity.
+  :name            (symbol)        name
+  :type            (symbol)        class name or primitive data type for fields, nil for methods
+  :return-type     (symbol)        class name or primitive data type for methods, nil for fields
+  :declaring-class (symbol)        class that declared the method
+  :parameter-types (symbol vector) classes representing the argument types
+  :exception-types (symbol vector) classes representing the exception types
+  :flags           (keyword set)   a set containing any or more of
+                      :public, :private, :static, :bridge, :synthetic, :static, :varargs
+  :arity           (long)          arity of the method"
+  [pred class-and-interfaces]
+  (->> class-and-interfaces
+    (map str)
+    (map #(if-let [klass (Class/forName ^String %)]
+            klass
+            (expected "a class" %)))
+    (map r/type-reflect)
+    (map :members)
+    (mapcat #(filter pred %))
+    (sort-by :name)
+    (group-by :name)  ; group overloaded methods together - multiple signatures
+    vals
+    (sort-by #(:name (first %)))
+    (map (fn [specs]
+           (->> specs
+             (sort-by #(count (:parameter-types %)))
+             (group-by #(count (:parameter-types %))) ; group type-overloaded methods together - unsupported in Clj
+             (map (fn [[param-count same-arity-specs]]
+                    (assoc (first same-arity-specs)
+                      :arity param-count)))
+             (sort-by :arity))))))
