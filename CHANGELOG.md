@@ -14,10 +14,10 @@ All notable changes to this project will be documented in this file. This change
   - Command
 
 
-## [WIP] 0.3.0 / 2017-July-??
-
+## [WIP] 0.3.0 / 2017-August-??
+### Added
 - Instrumentation
-  - [TODO] JDBC (including top slow queries)
+  - JDBC instrumentation in `preflex.instrument.jdbc` namepace
   - [TODO] Fast (using `volatile!`) thread-pool instrumentation with limited stages
 
 

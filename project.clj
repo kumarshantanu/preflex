@@ -11,6 +11,9 @@
                 *unchecked-math* :warn-on-boxed}
   :profiles {:provided {:dependencies [[org.clojure/clojure "1.7.0"]]
                         :global-vars {*unchecked-math* :warn-on-boxed}}
+             :dev {:dependencies [[asphalt             "0.6.3"]
+                                  [clj-dbcp            "0.9.0"]
+                                  [com.h2database/h2   "1.3.176"]]}
              :c17 {:dependencies [[org.clojure/clojure "1.7.0"]]}
              :c18 {:dependencies [[org.clojure/clojure "1.8.0"]]}
              :c19 {:dependencies [[org.clojure/clojure "1.9.0-alpha17"]]}

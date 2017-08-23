@@ -30,7 +30,7 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.Map;
 
-import preflex.instrument.EventHandlerFactory;
+import preflex.instrument.task.Wrapper;
 
 public class CallableStatementWrapper<SQLExecution> extends PreparedStatementWrapper<SQLExecution>
 implements CallableStatement {
@@ -39,8 +39,8 @@ implements CallableStatement {
 
     public CallableStatementWrapper(final Connection conn, final CallableStatement stmt, final String sql,
             final JdbcEventFactory<?, ?, SQLExecution> eventFactory,
-            final EventHandlerFactory<SQLExecution> sqlExecutionListener) {
-        super(conn, stmt, sql, eventFactory, sqlExecutionListener);
+            final Wrapper<SQLExecution> sqlExecutionWrapper) {
+        super(conn, stmt, sql, eventFactory, sqlExecutionWrapper);
         this.stmt = stmt;
     }
 
