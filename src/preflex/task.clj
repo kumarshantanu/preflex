@@ -34,21 +34,24 @@
 (defn make-event-handler
   "Make a preflex.instrument.EventHandler instance from given options:
   :before    (fn [])
-  :on-return (fn [] [result])
+  :on-return (fn [])
+  :on-result (fn [result])
   :on-throw  (fn [thrown])
   :after     (fn [])"
   [{:keys [before
            on-return
+           on-result
            on-throw
            after]
     :or {before    i/nop
          on-return i/nop
+         on-result i/nop
          on-throw  i/nop
          after     i/nop}}]
   (reify EventHandler
     (before   [_]        (before))
     (onReturn [_]        (on-return))
-    (onReturn [_ result] (on-return result))
+    (onResult [_ result] (on-result result))
     (onThrow  [_ thrown] (on-throw thrown))
     (after    [_]        (after))))
 
