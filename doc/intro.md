@@ -170,7 +170,7 @@ below we instrument a thread-pool to capture the timestamp of every stage a task
 
 ;; instrument the thread-pool (see the docstring for arguments)
 (def instrumented-thread-pool (i/instrument-thread-pool tp
-                                (assoc i/shared-context-thread-pool-event-handlers-millis
+                                (assoc i/shared-context-thread-pool-task-wrappers-millis
                                   :callable-decorator (i/make-shared-context-callable-decorator invoker)
                                   :runnable-decorator (i/make-shared-context-runnable-decorator invoker))))
 ```

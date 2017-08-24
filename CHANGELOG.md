@@ -20,6 +20,9 @@ All notable changes to this project will be documented in this file. This change
   - JDBC instrumentation in `preflex.instrument.jdbc` namepace
   - [TODO] Fast (using `volatile!`) thread-pool instrumentation with limited stages
 
+### Changed
+- [BREAKING CHANGE] Replace event-handler with task-wrapper in thread pool instrumentation
+
 
 ## 0.2.0 / 2017-July-05
 ### Fixed
