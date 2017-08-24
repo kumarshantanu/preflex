@@ -20,7 +20,6 @@
     [preflex.instrument.concurrent
      CallableDecorator
      ConcurrentEventFactory
-     ConcurrentEventHandlerFactory
      ConcurrentTaskWrapper
      ExecutorServiceWrapper
      RunnableDecorator

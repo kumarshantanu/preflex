@@ -22,6 +22,7 @@ All notable changes to this project will be documented in this file. This change
 
 ### Changed
 - [BREAKING CHANGE] Replace event-handler with task-wrapper in thread pool instrumentation
+- [BREAKING CHANGE] Drop `preflex.instrument.concurrent.ConcurrentEventHandlerFactory` in favor of task wrappers
 
 
 ## 0.2.0 / 2017-July-05
