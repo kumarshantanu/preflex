@@ -61,11 +61,11 @@
 (defn future-call-via
   "Same as `clojure.core/future-call`, but for a specified thread pool with instrumentation.
   Options:
-    :context-maker   fn/1 - creates context to be passed as first arg to other listeners
-    :on-task-submit  fn/1 - called when task submission succeeds on the thread pool
-    :on-task-reject  fn/2 - called when task submission is rejected on the thread pool
-    :on-task-error   fn/2 - called when the future object cannot be derefed successfully
-    :on-task-timeout fn/2 - called when the future object cannot be derefed in specified time"
+    :context-maker   (fn [thread-pool]) - creates context to be passed as first arg to other listeners
+    :on-task-submit  (fn [context])     - called when task submission succeeds on the thread pool
+    :on-task-reject  (fn [context ex])  - called when task submission is rejected on the thread pool
+    :on-task-error   (fn [context ex])  - called when the future object cannot be derefed successfully
+    :on-task-timeout (fn [context ex])  - called when the future object cannot be derefed in specified time"
   ([^ExecutorService thread-pool {:keys [context-maker
                                          on-task-submit
                                          on-task-reject
@@ -127,11 +127,11 @@
 (defn via-thread-pool
   "Execute given task (no-arg fn) asynchronously on specified thread pool and return result.
   Options:
-    :context-maker   fn/1  - creates context to be passed as first arg to other listeners
-    :on-task-submit  fn/1  - called when task submission succeeds on the thread pool
-    :on-task-reject  fn/2  - called when task submission is rejected on the thread pool
-    :on-task-error   fn/2  - called when the future object cannot be derefed successfully
-    :on-task-timeout fn/2  - called when the future object cannot be derefed in specified time
+    :context-maker   (fn [thread-pool]) - creates context to be passed as first arg to other listeners
+    :on-task-submit  (fn [context])     - called when task submission succeeds on the thread pool
+    :on-task-reject  (fn [context ex])  - called when task submission is rejected on the thread pool
+    :on-task-error   (fn [context ex])  - called when the future object cannot be derefed successfully
+    :on-task-timeout (fn [context ex])  - called when the future object cannot be derefed in specified time
     :task-timeout    proto - timeout duration as preflex.type/IDuration instance e.g. [1000 :millis]"
   ([^ExecutorService thread-pool {:keys [context-maker
                                          on-task-submit
@@ -205,10 +205,10 @@
   the permit. Handle events on-acquired, on-released, on-rejected using optional handlers. When no permit is available,
   throw appropriate exception by default.
   Options:
-    :context-maker        fn/1 - creates context to be passed as first arg to other listeners
-    :on-semaphore-acquire fn/1 - accepts context, does nothing by default
-    :on-semaphore-release fn/1 - accepts context, does nothing by default
-    :on-semaphore-reject  fn/1 - accepts context, does nothing by default"
+    :context-maker        (fn [semaphore]) - creates context to be passed as first arg to other listeners
+    :on-semaphore-acquire (fn [context])   - accepts context, does nothing by default
+    :on-semaphore-release (fn [context])   - accepts context, does nothing by default
+    :on-semaphore-reject  (fn [context])   - accepts context, does nothing by default"
   ([semaphore {:keys [context-maker
                       on-semaphore-acquire
                       on-semaphore-release
@@ -387,10 +387,10 @@
   * A caller may invoke (preflex.type.ICircuitBreaker/mark!) informing about the status of an operation. Success
     sets circuit-breaker into connected state, whereas failure may set circuit breaker into tripped state.
   Options:
-    :name       (any type) circuit-breaker name, coerced as string
-    :fair?      (boolean)  whether state-transition should be fair across threads
-    :on-trip    (fn/1)     called when circuit breaker switches from connected to tripped state
-    :on-connect (fn/1)     called when circuit breaker switches from tripped to connected state"
+    :name       (any type)  circuit-breaker name, coerced as string
+    :fair?      (boolean)   whether state-transition should be fair across threads
+    :on-trip    (fn [impl]) called when circuit breaker switches from connected to tripped state
+    :on-connect (fn [impl]) called when circuit breaker switches from tripped to connected state"
   ([fault-detector retry-resolver {circuit-breaker-name :name
                                    :keys [fair?
                                           on-trip
@@ -418,9 +418,9 @@
 (defn via-circuit-breaker
   "Execute given task using specified circuit breaker.
   Options:
-    :context-maker    fn/0 - creates context to be passed as first arg to other listeners
-    :on-circuit-allow fn/1 - accepts context and circuit breaker, does nothing by default
-    :on-circuit-deny  fn/1 - accepts circuit breaker, throws appropriate exception by default"
+    :context-maker    (fn [])        - creates context to be passed as first arg to other listeners
+    :on-circuit-allow (fn [context]) - does nothing by default
+    :on-circuit-deny  (fn [context]) - throws appropriate exception by default"
   ([circuit-breaker {:keys [context-maker
                             on-circuit-allow
                             on-circuit-deny]
@@ -452,9 +452,9 @@
   "Execute given task using specified tracker, an arity-1 fn that accepts true to indicate success and false to
   indicate failure.
   Options:
-    :context-maker fn/1 called with success-failure-tracker as argument
-    :post-result   fn/2 called with context and the result being returned as arguments
-    :post-error    fn/2 called with context and the error being thrown as arguments"
+    :context-maker (fn [tracker])        called with success-failure-tracker as argument
+    :post-result   (fn [context result]) called with context and the result being returned as arguments
+    :post-error    (fn [context error])  called with context and the error being thrown as arguments"
   ([success-failure-tracker {:keys [context-maker
                                     post-result
                                     post-error]
@@ -481,7 +481,7 @@
 (defn via-latency-tracker
   "Execute given task using latency tracker, an arity-2 fn accepting success-status true/false and long-int latency.
   Options:
-    :now-finder  (fn/1) fn returning stopwatch time now as long int"
+    :now-finder  (fn []) fn returning stopwatch time now as long int"
   ([latency-tracker {:keys [now-finder]
                      :or {now-finder u/now-millis}}
     f]
@@ -504,10 +504,10 @@
   "Given one or more tasks (each task is a no-arg fn/invokable) execute them serially such that the first successful
   result is returned. On failure invoke the next fn and so on. In the event of no success, return the last failure.
   Options:
-    :context-maker fn/1 - creates context to be passed as first arg to other listeners
-    :pre-invoke    fn/2 - accepts context and task as arguments, called before every task invocation
-    :post-result   fn/3 - accepts context, task and final result as args, called when finally returning a result
-    :post-error    fn/3 - accepts context, task and final error as args, called when finally throwing an error"
+    :context-maker (fn [tasks])            - creates context to be passed as first arg to other listeners
+    :pre-invoke    (fn [context f])        - called before every task invocation
+    :post-result   (fn [context f result]) - called when finally returning a result
+    :post-error    (fn [context f error])  - called when finally throwing an error"
   ([fallback-fns {:keys [context-maker
                          pre-invoke
                          post-result

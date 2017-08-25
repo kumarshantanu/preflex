@@ -33,11 +33,11 @@
   "Given an instrumentation event create an event handler (preflex.instrument.EventHandler instance) using optional
   handler fns (falling back to no-op handling) for different stages as follows:
 
-  :before    fn/1, accepts event
-  :on-return fn/1, accepts event
-  :on-result fn/2, accepts event and result
-  :on-throw  fn/2, accepts event and exception
-  :after     fn/1, accepts event"
+  :before    (fn [event])
+  :on-return (fn [event])
+  :on-result (fn [event result])
+  :on-throw  (fn [event exception])
+  :after     (fn [event])"
   [event {:keys [before
                  on-return
                  on-result
@@ -91,14 +91,14 @@
   "Create a thread-pool event generator (preflex.instrument.concurrent.ConcurrentEventFactory instance) using optional
   event generators (falling back to generating no-op events) as follows:
 
-  :runnable-submit  fn/1, accepts java.lang.Runnable
-  :callable-submit  fn/1, accepts java.util.concurrent.Callable
-  :multiple-submit  fn/1, accepts java.util.Collection<java.util.concurrent.Callable>
-  :shutdown-request fn/0
-  :runnable-execute fn/1, accepts java.lang.Runnable
-  :callable-execute fn/1, accepts java.util.concurrent.Callable
-  :future-cancel    fn/1, accepts java.util.concurrent.Future
-  :future-result    fn/1, accepts java.util.concurrent.Future"
+  :runnable-submit  (fn [java.lang.Runnable])
+  :callable-submit  (fn [java.util.concurrent.Callable])
+  :multiple-submit  (fn [java.util.Collection<java.util.concurrent.Callable>])
+  :shutdown-request (fn [])
+  :runnable-execute (fn [java.lang.Runnable])
+  :callable-execute (fn [java.util.concurrent.Callable])
+  :future-cancel    (fn [java.util.concurrent.Future])
+  :future-result    (fn [java.util.concurrent.Future])"
   [{:keys [runnable-submit
            callable-submit
            multiple-submit
