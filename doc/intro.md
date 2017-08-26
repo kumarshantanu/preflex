@@ -166,7 +166,7 @@ below we instrument a thread-pool to capture the timestamp of every stage a task
 (def tp (p/make-bounded-thread-pool 10 20))
 
 ;; define an invoker to execute the task (submitted to the thread pool) as a no-arg fn
-(defn invoker [g volatile-context] (println @volatile-context) (g))
+(defn invoker [g context] (println @context) (g))
 
 ;; instrument the thread-pool (see the docstring for arguments)
 (def instrumented-thread-pool (i/instrument-thread-pool tp
@@ -179,5 +179,6 @@ When we submit a task to the instrumented thread pool, the captured event timest
 executing the task.
 
 ```clojure
-@(.submit ^java.util.concurrent.ExecutorService instrumented-thread-pool ^java.util.concurrent.Callable #(+ 10 20))
+@(.submit ^java.util.concurrent.ExecutorService instrumented-thread-pool
+   ^java.util.concurrent.Callable #(+ 10 20))
 ```
