@@ -75,15 +75,6 @@
      ~@body))
 
 
-(defn shared-context-update-event
-  "Given event as an associate structure and an event-key, update the shared context contained in the event attribute
-  using the arity-1 update fn argument."
-  [event event-k f]
-  (when (contains? event event-k)
-    (with-shared-context [context (get event event-k)]
-      (f context))))
-
-
 ;; ---------- thread pool instrumentation ----------
 
 
@@ -143,6 +134,23 @@
      :future-result    (fn [fut]   {:event-context :thread-future :event-type :future-result    :future   fut})}))
 
 
+(defn shared-context-worker
+  "Given event navigation key for the instrumented object with shared-context, and a (fn [shared-context & args]),
+  return a worker (fn [event & args]) that uses the specified function to work with the shared context."
+  [nav-k f]
+  (fn [event & args]
+    (with-shared-context [shared-context (get event nav-k)]
+      (apply f shared-context args))))
+
+
+(def shared-context-callable-deref  (shared-context-worker :callable deref))
+(def shared-context-callable-swap!  (shared-context-worker :callable swap!))
+(def shared-context-future-deref    (shared-context-worker :future   deref))
+(def shared-context-future-swap!    (shared-context-worker :future   swap!))
+(def shared-context-runnable-deref  (shared-context-worker :runnable deref))
+(def shared-context-runnable-swap!  (shared-context-worker :runnable swap!))
+
+
 (defn make-shared-context-callable-decorator
   "Given invoker `(fn [f context-atom]) -> any`, return a preflex.instrument.concurrent.CallableDecorator instance
   that initializes shared context with a mutable seed and calls the invoker, `f` being callable-as-no-arg-fn."
@@ -192,60 +200,45 @@
            k-future-cancel-end
            k-future-result-begin
            k-future-result-end]}]
-  (let [after-submit   (fn [event-k event]
-                         (shared-context-update-event event event-k
-                           (fn [context-atom]
-                             (swap! context-atom
-                               (fn [{^long submit-begin-ts k-submit-begin
-                                     :as context}]
-                                 (let [^long now-ts (now-fn)
-                                       duration-submit (unchecked-subtract now-ts submit-begin-ts)]
-                                   (assoc context
-                                     k-submit-end      now-ts
-                                     k-duration-submit duration-submit)))))))
-        before-execute (fn [event-k event]
-                         (shared-context-update-event event event-k
-                           (fn [context-atom]
-                             (swap! context-atom
-                               (fn [{^long submit-begin-ts k-submit-begin
-                                     :as context}]
-                                 (let [^long now-ts (now-fn)
-                                       duration-queue (unchecked-subtract now-ts submit-begin-ts)]
-                                   (assoc context
-                                     k-execute-begin   now-ts
-                                     k-duration-queue  duration-queue)))))))
-        after-execute  (fn [event-k event]
-                         (shared-context-update-event event event-k
-                           (fn [context-atom]
-                             (swap! context-atom
-                               (fn [{^long submit-begin-ts  k-submit-begin
-                                     ^long execute-begin-ts k-execute-begin
-                                     :as context}]
-                                 (let [^long now-ts (now-fn)
-                                       duration-execute  (unchecked-subtract now-ts execute-begin-ts)
-                                       duration-response (unchecked-subtract now-ts submit-begin-ts)]
-                                   (assoc context
-                                     k-execute-end now-ts
-                                     k-duration-execute  duration-execute
-                                     k-duration-response duration-response)))))))
-        assoc-context  (fn [event-k context-k event]
-                         (shared-context-update-event event event-k
-                           (fn [context-atom]
-                             (swap! context-atom
-                               (fn [context]
-                                 (assoc context context-k (now-fn)))))))]
-    {:callable-submit-wrapper  (fn [event f] (try       (assoc-context  :callable k-submit-begin event)        (f)
-                                               (finally (after-submit   :callable event))))
-     :runnable-submit-wrapper  (fn [event f] (try       (assoc-context  :runnable k-submit-begin event)        (f)
-                                               (finally (after-submit   :runnable event))))
-     :callable-execute-wrapper (fn [event f] (try       (before-execute :callable event)                       (f)
-                                               (finally (after-execute  :callable event))))
-     :runnable-execute-wrapper (fn [event f] (try       (before-execute :runnable event)                       (f)
-                                               (finally (after-execute  :runnable event))))
-     :future-cancel-wrapper    (fn [event f] (try       (assoc-context  :future   k-future-cancel-begin event) (f)
-                                               (finally (assoc-context  :future   k-future-cancel-end   event))))
-     :future-result-wrapper    (fn [event f] (try       (assoc-context  :future   k-future-result-begin event) (f)
-                                               (finally (assoc-context  :future   k-future-result-end   event))))}))
+  (let [after-submit   (fn [{^long submit-begin-ts k-submit-begin
+                             :as context}]
+                         (let [^long now-ts (now-fn)
+                               duration-submit (unchecked-subtract now-ts submit-begin-ts)]
+                           (assoc context
+                             k-submit-end      now-ts
+                             k-duration-submit duration-submit)))
+        before-execute (fn [{^long submit-begin-ts k-submit-begin
+                             :as context}]
+                         (let [^long now-ts (now-fn)
+                               duration-queue (unchecked-subtract now-ts submit-begin-ts)]
+                           (assoc context
+                             k-execute-begin   now-ts
+                             k-duration-queue  duration-queue)))
+        after-execute  (fn [{^long submit-begin-ts  k-submit-begin
+                             ^long execute-begin-ts k-execute-begin
+                             :as context}]
+                         (let [^long now-ts (now-fn)
+                               duration-execute  (unchecked-subtract now-ts execute-begin-ts)
+                               duration-response (unchecked-subtract now-ts submit-begin-ts)]
+                           (assoc context
+                             k-execute-end now-ts
+                             k-duration-execute  duration-execute
+                             k-duration-response duration-response)))
+        callable-swap! shared-context-callable-swap!
+        runnable-swap! shared-context-runnable-swap!
+        future-swap!   shared-context-future-swap!]
+    {:callable-submit-wrapper  (fn [event f] (try       (callable-swap! event assoc k-submit-begin (now-fn))      (f)
+                                               (finally (callable-swap! event after-submit))))
+     :runnable-submit-wrapper  (fn [event f] (try       (runnable-swap! event assoc k-submit-begin (now-fn))      (f)
+                                               (finally (runnable-swap! event after-submit))))
+     :callable-execute-wrapper (fn [event f] (try       (callable-swap! event before-execute)                     (f)
+                                               (finally (callable-swap! event after-execute))))
+     :runnable-execute-wrapper (fn [event f] (try       (runnable-swap! event before-execute)                     (f)
+                                               (finally (runnable-swap! event after-execute))))
+     :future-cancel-wrapper    (fn [event f] (try       (future-swap! event assoc k-future-cancel-begin (now-fn)) (f)
+                                               (finally (future-swap! event assoc k-future-cancel-end   (now-fn)))))
+     :future-result-wrapper    (fn [event f] (try       (future-swap! event assoc k-future-result-begin (now-fn)) (f)
+                                               (finally (future-swap! event assoc k-future-result-end   (now-fn)))))}))
 
 
 (def shared-context-thread-pool-task-wrappers-nanos  (make-shared-context-thread-pool-task-wrappers
