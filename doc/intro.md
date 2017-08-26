@@ -10,10 +10,11 @@ and observability of your application using instrumentation, metrics and safety 
 Rest of the document assumes the following namespace aliases:
 
 ```clojure
-(require '[preflex.core       :as p])
-(require '[preflex.instrument :as i])
-(require '[preflex.metrics    :as m])
-(require '[preflex.type       :as t])
+(require '[preflex.core            :as p])
+(require '[preflex.instrument      :as i])
+(require '[preflex.instrument.jdbc :as j])
+(require '[preflex.metrics         :as m])
+(require '[preflex.type            :as t])
 ```
 
 
@@ -182,3 +183,23 @@ executing the task.
 @(.submit ^java.util.concurrent.ExecutorService instrumented-thread-pool
    ^java.util.concurrent.Callable #(+ 10 20))
 ```
+
+
+## Instrumenting a JDBC connection pool (any `javax.sql.DataSource` instance)
+
+JDBC operations involve creating a connection, preparing a statement and executing the SQL. We can instrument a
+connection pool to find out the time spent at each stage.
+
+```clojure
+(defn print-latency [event f] (let [start (System/currentTimeMillis)]
+                                (try (f)
+                                  (finally (printf "Event: %s, Latency: %d millis"
+                                             event (- (System/currentTimeMillis) start))))))
+;; assuming 'dbcp' is a connection pool
+(def instrumented-dbcp (j/instrument-datasource dbcp
+                         {:conn-creation-wrapper print-latency
+                          :stmt-creation-wrapper print-latency
+                          :sql-execution-wrapper print-latency}))
+```
+
+Now, whenever we execute an operation on `instrumented-dbcp` the time spent on each phase is printed separately.
