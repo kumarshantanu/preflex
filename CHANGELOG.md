@@ -21,8 +21,10 @@ All notable changes to this project will be documented in this file. This change
   - [TODO] Fast (using `volatile!`) thread-pool instrumentation with limited stages
 
 ### Changed
-- [BREAKING CHANGE] Replace event-handler with task-wrapper in thread pool instrumentation
-- [BREAKING CHANGE] Drop `preflex.instrument.concurrent.ConcurrentEventHandlerFactory` in favor of task wrappers
+- Thread pool instrumentation
+  - [BREAKING CHANGE] Replace event-handler with task-wrapper
+  - Use shared-context initialized as `(atom {})` by default
+  - [BREAKING CHANGE] Drop `preflex.instrument.concurrent.ConcurrentEventHandlerFactory` in favor of task wrappers
 
 
 ## 0.2.0 / 2017-July-05

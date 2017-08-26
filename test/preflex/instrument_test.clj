@@ -29,7 +29,7 @@
 
 
 (deftest test-instrument-thread-pool
-  (testing "dummy instrumentation"
+  (testing "default instrumentation"
     (with-active-thread-pool [^ExecutorService thread-pool (core/make-bounded-thread-pool 10 10)]
       (doseq [pool [thread-pool (:thread-pool thread-pool)]]
         (let [instru-pool (instru/instrument-thread-pool pool {})]
@@ -40,10 +40,7 @@
   (testing "shared context instrumentation"
     (with-active-thread-pool [^ExecutorService thread-pool (core/make-bounded-thread-pool 10 10)]
       (let [instru-pool (instru/instrument-thread-pool thread-pool
-                          (-> instru/shared-context-thread-pool-task-wrappers-millis
-                            (assoc
-                              :callable-decorator  instru/default-shared-context-callable-decorator
-                              :runnable-decorator  instru/default-shared-context-runnable-decorator)))]
+                          instru/shared-context-thread-pool-task-wrappers-millis)]
         (let [^FutureWrapper fut (.submit ^ExecutorService instru-pool ^Runnable #(do 10))
               ^SharedContextFuture scf (.getOrig fut)
               shared-context (.getContext scf)]

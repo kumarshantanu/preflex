@@ -237,15 +237,15 @@
     {:callable-submit-wrapper  (fn [event f] (try       (assoc-context  :callable k-submit-begin event)        (f)
                                                (finally (after-submit   :callable event))))
      :runnable-submit-wrapper  (fn [event f] (try       (assoc-context  :runnable k-submit-begin event)        (f)
-                                       (finally (after-submit   :runnable event))))
+                                               (finally (after-submit   :runnable event))))
      :callable-execute-wrapper (fn [event f] (try       (before-execute :callable event)                       (f)
-                                       (finally (after-execute  :callable event))))
+                                               (finally (after-execute  :callable event))))
      :runnable-execute-wrapper (fn [event f] (try       (before-execute :runnable event)                       (f)
-                                       (finally (after-execute  :runnable event))))
+                                               (finally (after-execute  :runnable event))))
      :future-cancel-wrapper    (fn [event f] (try       (assoc-context  :future   k-future-cancel-begin event) (f)
-                                       (finally (assoc-context  :future   k-future-cancel-end   event))))
+                                               (finally (assoc-context  :future   k-future-cancel-end   event))))
      :future-result-wrapper    (fn [event f] (try       (assoc-context  :future   k-future-result-begin event) (f)
-                                       (finally (assoc-context  :future   k-future-result-end   event))))}))
+                                               (finally (assoc-context  :future   k-future-result-end   event))))}))
 
 
 (def shared-context-thread-pool-task-wrappers-nanos  (make-shared-context-thread-pool-task-wrappers
@@ -320,8 +320,8 @@
                                         future-cancel-wrapper
                                         future-result-wrapper]
                                  :or {;; decorators
-                                      callable-decorator CallableDecorator/IDENTITY
-                                      runnable-decorator RunnableDecorator/IDENTITY
+                                      callable-decorator default-shared-context-callable-decorator
+                                      runnable-decorator default-shared-context-runnable-decorator
                                       ;; event generator
                                       event-generator    default-thread-pool-event-generator
                                       ;; task wrappers
