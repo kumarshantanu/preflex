@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file. This change
   - Command
 
 
-## [WIP] 0.3.0 / 2017-August-??
+## 0.3.0 / 2017-August-28
 ### Added
 - JDBC instrumentation in `preflex.instrument.jdbc` namepace
 
