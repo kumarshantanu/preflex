@@ -27,7 +27,7 @@ Preflex provides the following facilities:
 
 ## Usage
 
-Leiningen coordinates: `[preflex "0.2.0"]`
+Leiningen coordinates: `[preflex "0.3.0"]`
 
 See [documentation](doc/intro.md)
 
