@@ -104,8 +104,8 @@
    retry-resolver                 ; stateful retry resolver
    ^Semaphore trip-lock           ; binary semaphore to isolate transition connected-state => tripped-state
    ^Semaphore conn-lock           ; binary semaphore to isolate transition tripped-state => connected-state
-   on-trip    ; arity-1 fn
-   on-connect ; arity-fn
+   on-trip    ; (fn [this])
+   on-connect ; (fn [this])
    ]
   IDeref
   (deref [this] @volatile-circuit-breaker-state)

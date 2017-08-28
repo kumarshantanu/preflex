@@ -12,11 +12,11 @@
     [preflex.internal :as i])
   (:import
     [preflex.instrument      EventHandler EventHandlerFactory]
-    [preflex.instrument.task InstrumentingWrapper Wrapper]))
+    [preflex.instrument.task Wrapper]))
 
 
 (defn make-wrapper
-  "Given an instrumenting caller f (arity-2 fn that accepts context and no-arg fn as args), return a Wrapper instance."
+  "Given an instrumenting caller (fn [context (fn task [])]), return a preflex.instrument.task.Wrapper instance."
   [f]
   (reify Wrapper
     (run  [_ context task]         (f context #(.run  task)))
@@ -32,32 +32,40 @@
 
 
 (defn make-event-handler
+  "Make a preflex.instrument.EventHandler instance from given options:
+  :before    (fn [])
+  :on-return (fn [])
+  :on-result (fn [result])
+  :on-throw  (fn [thrown])
+  :after     (fn [])"
   [{:keys [before
            on-return
+           on-result
            on-throw
            after]
     :or {before    i/nop
          on-return i/nop
+         on-result i/nop
          on-throw  i/nop
          after     i/nop}}]
   (reify EventHandler
     (before   [_]        (before))
     (onReturn [_]        (on-return))
-    (onReturn [_ result] (on-return result))
+    (onResult [_ result] (on-result result))
     (onThrow  [_ thrown] (on-throw thrown))
     (after    [_]        (after))))
 
 
 (defn make-event-handler-factory
-  "Given factory fn (accepts event as argument, returns EventHandler), create and return an EventHandlerFactory object."
+  "Given (fn [event]) -> EventHandler, create and return a preflex.instrument.EventHandlerFactory object."
   [f]
   (reify EventHandlerFactory
     (createHandler [_ event] (f event))))
 
 
 (defmacro wrap-proxy
-  "Given an instrumenting caller f (that accepts context and no-arg fn as args), a target object and proxy
-  class/interfaces and constructor args, return an instrumented proxy."
+  "Given an instrumenting caller (fn [context (fn task [])), a target object and proxy class/interfaces and
+  constructor args, return an instrumented proxy."
   [f object class-and-interfaces args {:keys [method-pred]
                                        :or {method-pred i/public-method?}
                                        :as options}]

@@ -32,25 +32,24 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
 
-import preflex.instrument.EventHandlerFactory;
 import preflex.instrument.task.CallTask1;
-import preflex.instrument.task.InstrumentingWrapper;
+import preflex.instrument.task.Wrapper;
 
 public class PreparedStatementWrapper<SQLExecution> extends StatementWrapper<SQLExecution>
 implements PreparedStatement {
 
     private final PreparedStatement pstmt;
-    private final InstrumentingWrapper<SQLExecution> sqlExecutionWrapper;
+    private final Wrapper<SQLExecution> sqlExecutionWrapper;
     private final SQLExecution preparedStatementQueryEvent;
     private final SQLExecution preparedStatementUpdateEvent;
     private final SQLExecution preparedStatementSQLEvent;
 
     public PreparedStatementWrapper(final Connection conn, final PreparedStatement pstmt, final String sql,
             final JdbcEventFactory<?, ?, SQLExecution> eventFactory,
-            final EventHandlerFactory<SQLExecution> sqlExecutionListener) {
-        super(conn, pstmt, eventFactory, sqlExecutionListener);
+            final Wrapper<SQLExecution> sqlExecutionWrapper) {
+        super(conn, pstmt, eventFactory, sqlExecutionWrapper);
         this.pstmt = pstmt;
-        this.sqlExecutionWrapper = new InstrumentingWrapper<>(sqlExecutionListener);
+        this.sqlExecutionWrapper = sqlExecutionWrapper;
         this.preparedStatementQueryEvent = eventFactory.sqlQueryExecutionEventForPreparedStatement(sql);
         this.preparedStatementUpdateEvent = eventFactory.sqlUpdateExecutionEventForPreparedStatement(sql);
         this.preparedStatementSQLEvent = eventFactory.sqlExecutionEventForPreparedStatement(sql);

@@ -11,6 +11,7 @@
   (:require
     [preflex.invokable :as invokable]
     [preflex.internal  :as in]
+    [preflex.task      :as task]
     [preflex.util      :as u])
   (:import
     [java.util UUID]
@@ -19,22 +20,24 @@
     [preflex.instrument.concurrent
      CallableDecorator
      ConcurrentEventFactory
-     ConcurrentEventHandlerFactory
+     ConcurrentTaskWrapper
      ExecutorServiceWrapper
      RunnableDecorator
      SharedContextCallable
-     SharedContextRunnable]))
+     SharedContextRunnable]
+    [preflex.instrument.task
+     Wrapper]))
 
 
 (defn make-event-handler
   "Given an instrumentation event create an event handler (preflex.instrument.EventHandler instance) using optional
   handler fns (falling back to no-op handling) for different stages as follows:
 
-  :before    fn/1, accepts event
-  :on-return fn/1, accepts event
-  :on-result fn/2, accepts event and result
-  :on-throw  fn/2, accepts event and exception
-  :after     fn/1, accepts event"
+  :before    (fn [event])
+  :on-return (fn [event])
+  :on-result (fn [event result])
+  :on-throw  (fn [event exception])
+  :after     (fn [event])"
   [event {:keys [before
                  on-return
                  on-result
@@ -72,15 +75,6 @@
      ~@body))
 
 
-(defn shared-context-update-event
-  "Given event as an associate structure and an event-key, update the shared context contained in the event attribute
-  using the arity-1 update fn argument."
-  [event event-k f]
-  (when (contains? event event-k)
-    (with-shared-context [context (get event event-k)]
-      (f context))))
-
-
 ;; ---------- thread pool instrumentation ----------
 
 
@@ -88,14 +82,14 @@
   "Create a thread-pool event generator (preflex.instrument.concurrent.ConcurrentEventFactory instance) using optional
   event generators (falling back to generating no-op events) as follows:
 
-  :runnable-submit  fn/1, accepts java.lang.Runnable
-  :callable-submit  fn/1, accepts java.util.concurrent.Callable
-  :multiple-submit  fn/1, accepts java.util.Collection<java.util.concurrent.Callable>
-  :shutdown-request fn/0
-  :runnable-execute fn/1, accepts java.lang.Runnable
-  :callable-execute fn/1, accepts java.util.concurrent.Callable
-  :future-cancel    fn/1, accepts java.util.concurrent.Future
-  :future-result    fn/1, accepts java.util.concurrent.Future"
+  :runnable-submit  (fn [java.lang.Runnable])
+  :callable-submit  (fn [java.util.concurrent.Callable])
+  :multiple-submit  (fn [java.util.Collection<java.util.concurrent.Callable>])
+  :shutdown-request (fn [])
+  :runnable-execute (fn [java.lang.Runnable])
+  :callable-execute (fn [java.util.concurrent.Callable])
+  :future-cancel    (fn [java.util.concurrent.Future])
+  :future-result    (fn [java.util.concurrent.Future])"
   [{:keys [runnable-submit
            callable-submit
            multiple-submit
@@ -140,6 +134,23 @@
      :future-result    (fn [fut]   {:event-context :thread-future :event-type :future-result    :future   fut})}))
 
 
+(defn shared-context-worker
+  "Given event navigation key for the instrumented object with shared-context, and a (fn [shared-context & args]),
+  return a worker (fn [event & args]) that uses the specified function to work with the shared context."
+  [nav-k f]
+  (fn [event & args]
+    (with-shared-context [shared-context (get event nav-k)]
+      (apply f shared-context args))))
+
+
+(def shared-context-callable-deref  (shared-context-worker :callable deref))
+(def shared-context-callable-swap!  (shared-context-worker :callable swap!))
+(def shared-context-future-deref    (shared-context-worker :future   deref))
+(def shared-context-future-swap!    (shared-context-worker :future   swap!))
+(def shared-context-runnable-deref  (shared-context-worker :runnable deref))
+(def shared-context-runnable-swap!  (shared-context-worker :runnable swap!))
+
+
 (defn make-shared-context-callable-decorator
   "Given invoker `(fn [f context-atom]) -> any`, return a preflex.instrument.concurrent.CallableDecorator instance
   that initializes shared context with a mutable seed and calls the invoker, `f` being callable-as-no-arg-fn."
@@ -174,8 +185,8 @@
     (wrapRunnable [this runnable] (SharedContextRunnable. runnable (atom {})))))
 
 
-(defn make-shared-context-thread-pool-event-handlers
-  "Given keyword arguments in a map, return thread-pool instrumentation event handlers."
+(defn make-shared-context-thread-pool-task-wrappers
+  "Given keyword arguments in a map, return thread-pool instrumentation task wrapper fns."
   [{:keys [now-fn
            k-submit-begin
            k-submit-end
@@ -189,92 +200,77 @@
            k-future-cancel-end
            k-future-result-begin
            k-future-result-end]}]
-  (let [after-submit   (fn [event-k event]
-                         (shared-context-update-event event event-k
-                           (fn [context-atom]
-                             (swap! context-atom
-                               (fn [{^long submit-begin-ts k-submit-begin
-                                     :as context}]
-                                 (let [^long now-ts (now-fn)
-                                       duration-submit (unchecked-subtract now-ts submit-begin-ts)]
-                                   (assoc context
-                                     k-submit-end      now-ts
-                                     k-duration-submit duration-submit)))))))
-        before-execute (fn [event-k event]
-                         (shared-context-update-event event event-k
-                           (fn [context-atom]
-                             (swap! context-atom
-                               (fn [{^long submit-begin-ts k-submit-begin
-                                     :as context}]
-                                 (let [^long now-ts (now-fn)
-                                       duration-queue (unchecked-subtract now-ts submit-begin-ts)]
-                                   (assoc context
-                                     k-execute-begin   now-ts
-                                     k-duration-queue  duration-queue)))))))
-        after-execute  (fn [event-k event]
-                         (shared-context-update-event event event-k
-                           (fn [context-atom]
-                             (swap! context-atom
-                               (fn [{^long submit-begin-ts  k-submit-begin
-                                     ^long execute-begin-ts k-execute-begin
-                                     :as context}]
-                                 (let [^long now-ts (now-fn)
-                                       duration-execute  (unchecked-subtract now-ts execute-begin-ts)
-                                       duration-response (unchecked-subtract now-ts submit-begin-ts)]
-                                   (assoc context
-                                     k-execute-end now-ts
-                                     k-duration-execute  duration-execute
-                                     k-duration-response duration-response)))))))
-        assoc-context  (fn [event-k context-k event]
-                         (shared-context-update-event event event-k
-                           (fn [context-atom]
-                             (swap! context-atom
-                               (fn [context]
-                                 (assoc context context-k (now-fn)))))))]
-    {:on-callable-submit  {:before (partial assoc-context  :callable k-submit-begin)
-                           :after  (partial after-submit   :callable)}
-     :on-runnable-submit  {:before (partial assoc-context  :runnable k-submit-begin)
-                           :after  (partial after-submit   :runnable)}
-     :on-callable-execute {:before (partial before-execute :callable)
-                           :after  (partial after-execute  :callable)}
-     :on-runnable-execute {:before (partial before-execute :runnable)
-                           :after  (partial after-execute  :runnable)}
-     :on-future-cancel    {:before (partial assoc-context  :future   k-future-cancel-begin)
-                           :after  (partial assoc-context  :future   k-future-cancel-end)}
-     :on-future-result    {:before (partial assoc-context  :future   k-future-result-begin)
-                           :after  (partial assoc-context  :future   k-future-result-end)}}))
+  (let [after-submit   (fn [{^long submit-begin-ts k-submit-begin
+                             :as context}]
+                         (let [^long now-ts (now-fn)
+                               duration-submit (unchecked-subtract now-ts submit-begin-ts)]
+                           (assoc context
+                             k-submit-end      now-ts
+                             k-duration-submit duration-submit)))
+        before-execute (fn [{^long submit-begin-ts k-submit-begin
+                             :as context}]
+                         (let [^long now-ts (now-fn)
+                               duration-queue (unchecked-subtract now-ts submit-begin-ts)]
+                           (assoc context
+                             k-execute-begin   now-ts
+                             k-duration-queue  duration-queue)))
+        after-execute  (fn [{^long submit-begin-ts  k-submit-begin
+                             ^long execute-begin-ts k-execute-begin
+                             :as context}]
+                         (let [^long now-ts (now-fn)
+                               duration-execute  (unchecked-subtract now-ts execute-begin-ts)
+                               duration-response (unchecked-subtract now-ts submit-begin-ts)]
+                           (assoc context
+                             k-execute-end now-ts
+                             k-duration-execute  duration-execute
+                             k-duration-response duration-response)))
+        callable-swap! shared-context-callable-swap!
+        runnable-swap! shared-context-runnable-swap!
+        future-swap!   shared-context-future-swap!]
+    {:callable-submit-wrapper  (fn [event f] (try       (callable-swap! event assoc k-submit-begin (now-fn))      (f)
+                                               (finally (callable-swap! event after-submit))))
+     :runnable-submit-wrapper  (fn [event f] (try       (runnable-swap! event assoc k-submit-begin (now-fn))      (f)
+                                               (finally (runnable-swap! event after-submit))))
+     :callable-execute-wrapper (fn [event f] (try       (callable-swap! event before-execute)                     (f)
+                                               (finally (callable-swap! event after-execute))))
+     :runnable-execute-wrapper (fn [event f] (try       (runnable-swap! event before-execute)                     (f)
+                                               (finally (runnable-swap! event after-execute))))
+     :future-cancel-wrapper    (fn [event f] (try       (future-swap! event assoc k-future-cancel-begin (now-fn)) (f)
+                                               (finally (future-swap! event assoc k-future-cancel-end   (now-fn)))))
+     :future-result-wrapper    (fn [event f] (try       (future-swap! event assoc k-future-result-begin (now-fn)) (f)
+                                               (finally (future-swap! event assoc k-future-result-end   (now-fn)))))}))
 
 
-(def shared-context-thread-pool-event-handlers-nanos  (make-shared-context-thread-pool-event-handlers
-                                                        {:now-fn                u/now-nanos
-                                                         :k-submit-begin        :submit-begin-ns
-                                                         :k-submit-end          :submit-end-ns
-                                                         :k-duration-submit     :duration-submit-ns
-                                                         :k-execute-begin       :execute-begin-ns
-                                                         :k-execute-end         :execute-end-ns
-                                                         :k-duration-queue      :duration-queue-ns
-                                                         :k-duration-execute    :duration-execute-ns
-                                                         :k-duration-response   :duration-response-ns
-                                                         :k-future-cancel-begin :cancel-begin-ns
-                                                         :k-future-cancel-end   :cancel-end-ns
-                                                         :k-future-result-begin :result-begin-ns
-                                                         :k-future-result-end   :result-end-ns}))
+(def shared-context-thread-pool-task-wrappers-nanos  (make-shared-context-thread-pool-task-wrappers
+                                                       {:now-fn                u/now-nanos
+                                                        :k-submit-begin        :submit-begin-ns
+                                                        :k-submit-end          :submit-end-ns
+                                                        :k-duration-submit     :duration-submit-ns
+                                                        :k-execute-begin       :execute-begin-ns
+                                                        :k-execute-end         :execute-end-ns
+                                                        :k-duration-queue      :duration-queue-ns
+                                                        :k-duration-execute    :duration-execute-ns
+                                                        :k-duration-response   :duration-response-ns
+                                                        :k-future-cancel-begin :cancel-begin-ns
+                                                        :k-future-cancel-end   :cancel-end-ns
+                                                        :k-future-result-begin :result-begin-ns
+                                                        :k-future-result-end   :result-end-ns}))
 
 
-(def shared-context-thread-pool-event-handlers-millis (make-shared-context-thread-pool-event-handlers
-                                                        {:now-fn                u/now-millis
-                                                         :k-submit-begin        :submit-begin-ms
-                                                         :k-submit-end          :submit-end-ms
-                                                         :k-duration-submit     :duration-submit-ms
-                                                         :k-execute-begin       :execute-begin-ms
-                                                         :k-execute-end         :execute-end-ms
-                                                         :k-duration-queue      :duration-queue-ms
-                                                         :k-duration-execute    :duration-execute-ms
-                                                         :k-duration-response   :duration-response-ms
-                                                         :k-future-cancel-begin :cancel-begin-ms
-                                                         :k-future-cancel-end   :cancel-end-ms
-                                                         :k-future-result-begin :result-begin-ms
-                                                         :k-future-result-end   :result-end-ms}))
+(def shared-context-thread-pool-task-wrappers-millis (make-shared-context-thread-pool-task-wrappers
+                                                       {:now-fn                u/now-millis
+                                                        :k-submit-begin        :submit-begin-ms
+                                                        :k-submit-end          :submit-end-ms
+                                                        :k-duration-submit     :duration-submit-ms
+                                                        :k-execute-begin       :execute-begin-ms
+                                                        :k-execute-end         :execute-end-ms
+                                                        :k-duration-queue      :duration-queue-ms
+                                                        :k-duration-execute    :duration-execute-ms
+                                                        :k-duration-response   :duration-response-ms
+                                                        :k-future-cancel-begin :cancel-begin-ms
+                                                        :k-future-cancel-end   :cancel-end-ms
+                                                        :k-future-result-begin :result-begin-ms
+                                                        :k-future-result-end   :result-end-ms}))
 
 
 (defn instrument-thread-pool
@@ -284,15 +280,15 @@
   ;; event generator
   :event-generator    instance of preflex.instrument.concurrent.ConcurrentEventFactory
 
-  ;; event handlers
-  on-callable-submit  instance of preflex.instrument.EventHandlerFactory or `event-handler-opts->factory` arg
-  on-multiple-submit  instance of preflex.instrument.EventHandlerFactory or `event-handler-opts->factory` arg
-  on-runnable-submit  instance of preflex.instrument.EventHandlerFactory or `event-handler-opts->factory` arg
-  on-shutdown-request instance of preflex.instrument.EventHandlerFactory or `event-handler-opts->factory` arg
-  on-callable-execute instance of preflex.instrument.EventHandlerFactory or `event-handler-opts->factory` arg
-  on-runnable-execute instance of preflex.instrument.EventHandlerFactory or `event-handler-opts->factory` arg
-  on-future-cancel    instance of preflex.instrument.EventHandlerFactory or `event-handler-opts->factory` arg
-  on-future-result    instance of preflex.instrument.EventHandlerFactory or `event-handler-opts->factory` arg
+  ;; task wrappers
+  :callable-submit-wrapper  instance of preflex.instrument.task.Wrapper or argument to `preflex.task/make-wrapper`
+  :multiple-submit-wrapper  instance of preflex.instrument.task.Wrapper or argument to `preflex.task/make-wrapper`
+  :runnable-submit-wrapper  instance of preflex.instrument.task.Wrapper or argument to `preflex.task/make-wrapper`
+  :shutdown-request-wrapper instance of preflex.instrument.task.Wrapper or argument to `preflex.task/make-wrapper`
+  :callable-execute-wrapper instance of preflex.instrument.task.Wrapper or argument to `preflex.task/make-wrapper`
+  :runnable-execute-wrapper instance of preflex.instrument.task.Wrapper or argument to `preflex.task/make-wrapper`
+  :future-cancel-wrapper    instance of preflex.instrument.task.Wrapper or argument to `preflex.task/make-wrapper`
+  :future-result-wrapper    instance of preflex.instrument.task.Wrapper or argument to `preflex.task/make-wrapper`
 
   ;; decorators
   :callable-decorator instance of preflex.instrument.concurrent.CallableDecorator
@@ -307,43 +303,44 @@
                                         runnable-decorator
                                         ;; event generator
                                         event-generator
-                                        ;; event handlers
-                                        on-callable-submit
-                                        on-multiple-submit
-                                        on-runnable-submit
-                                        on-shutdown-request
-                                        on-callable-execute
-                                        on-runnable-execute
-                                        on-future-cancel
-                                        on-future-result]
+                                        ;; task wrappers
+                                        callable-submit-wrapper
+                                        multiple-submit-wrapper
+                                        runnable-submit-wrapper
+                                        shutdown-request-wrapper
+                                        callable-execute-wrapper
+                                        runnable-execute-wrapper
+                                        future-cancel-wrapper
+                                        future-result-wrapper]
                                  :or {;; decorators
-                                      callable-decorator CallableDecorator/IDENTITY
-                                      runnable-decorator RunnableDecorator/IDENTITY
+                                      callable-decorator default-shared-context-callable-decorator
+                                      runnable-decorator default-shared-context-runnable-decorator
                                       ;; event generator
                                       event-generator    default-thread-pool-event-generator
-                                      ;; event handlers
-                                      on-callable-submit  EventHandlerFactory/NOP
-                                      on-multiple-submit  EventHandlerFactory/NOP
-                                      on-runnable-submit  EventHandlerFactory/NOP
-                                      on-shutdown-request EventHandlerFactory/NOP
-                                      on-callable-execute EventHandlerFactory/NOP
-                                      on-runnable-execute EventHandlerFactory/NOP
-                                      on-future-cancel    EventHandlerFactory/NOP
-                                      on-future-result    EventHandlerFactory/NOP}
+                                      ;; task wrappers
+                                      callable-submit-wrapper  Wrapper/IDENTITY
+                                      multiple-submit-wrapper  Wrapper/IDENTITY
+                                      runnable-submit-wrapper  Wrapper/IDENTITY
+                                      shutdown-request-wrapper Wrapper/IDENTITY
+                                      callable-execute-wrapper Wrapper/IDENTITY
+                                      runnable-execute-wrapper Wrapper/IDENTITY
+                                      future-cancel-wrapper    Wrapper/IDENTITY
+                                      future-result-wrapper    Wrapper/IDENTITY
+                                      }
                                  :as opts}]
   (ExecutorServiceWrapper.
     thread-pool
     event-generator
-    (let [as-event-handler-factory #(if (instance? EventHandlerFactory %) % (event-handler-opts->factory %))]
-      (ConcurrentEventHandlerFactory.
-        (as-event-handler-factory on-callable-submit)
-        (as-event-handler-factory on-multiple-submit)
-        (as-event-handler-factory on-runnable-submit)
-        (as-event-handler-factory on-shutdown-request)
-        (as-event-handler-factory on-callable-execute)
-        (as-event-handler-factory on-runnable-execute)
-        (as-event-handler-factory on-future-cancel)
-        (as-event-handler-factory on-future-result)))
+    (let [as-task-wrapper (fn ^Wrapper [x] (if (fn? x) (task/make-wrapper x) x))]
+      (ConcurrentTaskWrapper.
+        (as-task-wrapper callable-submit-wrapper)
+        (as-task-wrapper multiple-submit-wrapper)
+        (as-task-wrapper runnable-submit-wrapper)
+        (as-task-wrapper shutdown-request-wrapper)
+        (as-task-wrapper callable-execute-wrapper)
+        (as-task-wrapper runnable-execute-wrapper)
+        (as-task-wrapper future-cancel-wrapper)
+        (as-task-wrapper future-result-wrapper)))
     ;; decorators
     callable-decorator
     runnable-decorator))

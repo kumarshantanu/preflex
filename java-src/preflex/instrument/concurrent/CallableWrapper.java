@@ -12,21 +12,20 @@ package preflex.instrument.concurrent;
 
 import java.util.concurrent.Callable;
 
-import preflex.instrument.EventHandlerFactory;
 import preflex.instrument.task.CallTask1;
-import preflex.instrument.task.InstrumentingWrapper;
+import preflex.instrument.task.Wrapper;
 
 public class CallableWrapper<V, ExecutionEvent> implements Callable<V> {
 
     private final Callable<V> orig;
     private final ConcurrentEventFactory<?, ?, ExecutionEvent> eventFactory;
-    private final InstrumentingWrapper<ExecutionEvent> wrapper;
+    private final Wrapper<ExecutionEvent> wrapper;
 
     public CallableWrapper(Callable<V> task, ConcurrentEventFactory<?, ?, ExecutionEvent> eventFactory,
-            EventHandlerFactory<ExecutionEvent> eventHandlerFactory) {
+            Wrapper<ExecutionEvent> wrapper) {
         this.orig = task;
         this.eventFactory = eventFactory;
-        this.wrapper = new InstrumentingWrapper<>(eventHandlerFactory);
+        this.wrapper = wrapper;
     }
 
     public Callable<V> getOrig() {

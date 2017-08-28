@@ -6,15 +6,23 @@ All notable changes to this project will be documented in this file. This change
 - Generic kill switch
   - Protocl `ITerminable` with `terminate` and `terminated?` fns
   - Have the stateful abstractions (thread pool, semaphore etc.) implement `ITerminable`
-- Instrumentation
-  - JDBC (including top slow queries)
-  - Fast (using `volatile!`) thread-pool instrumentation with limited stages
 - Resilience primitives
   - Move to namespace `preflex.resilience`
   - Retry
   - Throttle
 - Hystrix emulation
   - Command
+
+
+## [WIP] 0.3.0 / 2017-August-??
+### Added
+- JDBC instrumentation in `preflex.instrument.jdbc` namepace
+
+### Changed
+- Thread pool instrumentation
+  - [BREAKING CHANGE] Replace event-handler with task-wrapper
+  - Use shared-context initialized as `(atom {})` by default
+  - [BREAKING CHANGE] Drop `preflex.instrument.concurrent.ConcurrentEventHandlerFactory` in favor of task wrappers
 
 
 ## 0.2.0 / 2017-July-05

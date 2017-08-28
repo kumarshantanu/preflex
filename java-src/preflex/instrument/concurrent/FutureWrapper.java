@@ -15,29 +15,26 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import preflex.instrument.EventHandlerFactory;
 import preflex.instrument.task.CallTask;
 import preflex.instrument.task.CallTask2;
 import preflex.instrument.task.CallTask3;
-import preflex.instrument.task.InstrumentingWrapper;
+import preflex.instrument.task.Wrapper;
 import preflex.util.Args;
 
 public class FutureWrapper<V, FutureEvent> implements Future<V> {
 
     private final Future<V> orig;
     private final ConcurrentEventFactory<?, FutureEvent, ?> eventFactory;
-    private final InstrumentingWrapper<FutureEvent> futureCancelWrapper;
-    private final InstrumentingWrapper<FutureEvent> futureResultWrapper;
+    private final Wrapper<FutureEvent> futureCancelWrapper;
+    private final Wrapper<FutureEvent> futureResultWrapper;
 
     public FutureWrapper(Future<V> future, ConcurrentEventFactory<?, FutureEvent, ?> eventFactory,
-            EventHandlerFactory<FutureEvent> futureCancelEventHandlerFactory,
-            EventHandlerFactory<FutureEvent> futureResultEventHandlerFactory) {
+            Wrapper<FutureEvent> futureCancelWrapper,
+            Wrapper<FutureEvent> futureResultWrapper) {
         this.orig = Args.notNull(future, "future");
         this.eventFactory = Args.notNull(eventFactory, "eventFactory");
-        this.futureCancelWrapper = new InstrumentingWrapper<>(Args.notNull(futureCancelEventHandlerFactory,
-                "futureCancelEventHandlerFactory"));
-        this.futureResultWrapper = new InstrumentingWrapper<>(Args.notNull(futureResultEventHandlerFactory,
-                "futureResultEventHandlerFactory"));
+        this.futureCancelWrapper = Args.notNull(futureCancelWrapper, "futureCancelWrapper");
+        this.futureResultWrapper = Args.notNull(futureResultWrapper, "futureResultWrapper");
     }
 
     public Future<V> getOrig() {

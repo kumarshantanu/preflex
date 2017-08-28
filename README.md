@@ -16,7 +16,8 @@ Preflex provides the following facilities:
 * Instrumentation
   * Success/failure tracking - tracks success/failure of an operation
   * Latency tracking - tracks latency of an operation
-  * Thread-pool instrumentation - callbacks for all stages, task wrapping
+  * Thread-pool instrumentation - task wrapping for all stages (task submit, exec begin/end, future, shared state)
+  * JDBC instrumentation - task wrapping for all stages (connection create, statement create, SQL execute)
 * Metrics
   * Ordinary counters
   * Rolling (sliding-window) counters

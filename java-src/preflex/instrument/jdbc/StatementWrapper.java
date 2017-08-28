@@ -16,24 +16,23 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 
-import preflex.instrument.EventHandlerFactory;
 import preflex.instrument.task.CallTask1;
-import preflex.instrument.task.InstrumentingWrapper;
+import preflex.instrument.task.Wrapper;
 
 public class StatementWrapper<SQLExecution> implements Statement {
 
     private final Connection conn;
     private final Statement stmt;
     private final JdbcEventFactory<?, ?, SQLExecution> eventFactory;
-    private final InstrumentingWrapper<SQLExecution> sqlExecutionWrapper;
+    private final Wrapper<SQLExecution> sqlExecutionWrapper;
 
     public StatementWrapper(final Connection conn, final Statement stmt,
             final JdbcEventFactory<?, ?, SQLExecution> eventFactory,
-            final EventHandlerFactory<SQLExecution> sqlExecutionListener) {
+            final Wrapper<SQLExecution> sqlExecutionWrapper) {
         this.conn = conn;
         this.stmt = stmt;
         this.eventFactory = eventFactory;
-        this.sqlExecutionWrapper = new InstrumentingWrapper<>(sqlExecutionListener);
+        this.sqlExecutionWrapper = sqlExecutionWrapper;
     }
 
     @Override

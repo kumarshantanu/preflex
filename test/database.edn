@@ -1,0 +1,18 @@
+{:adapter    :h2
+ :target     :memory
+ :database   "test;MVCC=true"
+ :jdbc-url   "jdbc:h2:mem:test;MVCC=true"
+ :classname  "org.h2.Driver"
+ :username   "sa"
+ :password   ""
+ :test-query "SELECT 1;"
+ :create-ddl "CREATE TABLE emp (
+    id     INT PRIMARY KEY AUTO_INCREMENT,
+    name   VARCHAR(50) NOT NULL,
+    salary INT NOT NULL,
+    dept   VARCHAR(50),
+    j_date DATE,
+    bio    CLOB,
+    pic    BLOB
+)"
+ :drop-ddl "DROP TABLE emp"}

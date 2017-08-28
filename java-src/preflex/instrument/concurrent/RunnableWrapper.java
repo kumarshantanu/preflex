@@ -10,21 +10,20 @@
 
 package preflex.instrument.concurrent;
 
-import preflex.instrument.EventHandlerFactory;
-import preflex.instrument.task.InstrumentingWrapper;
 import preflex.instrument.task.RunTask;
+import preflex.instrument.task.Wrapper;
 
 public class RunnableWrapper<ExecutionEvent> implements Runnable {
 
     private final Runnable orig;
     private final ConcurrentEventFactory<?, ?, ExecutionEvent> eventFactory;
-    private final InstrumentingWrapper<ExecutionEvent> wrapper;
+    private final Wrapper<ExecutionEvent> wrapper;
 
     public RunnableWrapper(Runnable command, ConcurrentEventFactory<?, ?, ExecutionEvent> eventFactory,
-            EventHandlerFactory<ExecutionEvent> eventHandlerFactory) {
+            Wrapper<ExecutionEvent> wrapper) {
         this.orig = command;
         this.eventFactory = eventFactory;
-        this.wrapper = new InstrumentingWrapper<>(eventHandlerFactory);
+        this.wrapper = wrapper;
     }
 
     public Runnable getOrig() {

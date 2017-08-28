@@ -10,10 +10,11 @@ and observability of your application using instrumentation, metrics and safety 
 Rest of the document assumes the following namespace aliases:
 
 ```clojure
-(require '[preflex.core       :as p])
-(require '[preflex.instrument :as i])
-(require '[preflex.metrics    :as m])
-(require '[preflex.type       :as t])
+(require '[preflex.core            :as p])
+(require '[preflex.instrument      :as i])
+(require '[preflex.instrument.jdbc :as j])
+(require '[preflex.metrics         :as m])
+(require '[preflex.type            :as t])
 ```
 
 
@@ -166,11 +167,11 @@ below we instrument a thread-pool to capture the timestamp of every stage a task
 (def tp (p/make-bounded-thread-pool 10 20))
 
 ;; define an invoker to execute the task (submitted to the thread pool) as a no-arg fn
-(defn invoker [g volatile-context] (println @volatile-context) (g))
+(defn invoker [g context] (println @context) (g))
 
 ;; instrument the thread-pool (see the docstring for arguments)
 (def instrumented-thread-pool (i/instrument-thread-pool tp
-                                (assoc i/shared-context-thread-pool-event-handlers-millis
+                                (assoc i/shared-context-thread-pool-task-wrappers-millis
                                   :callable-decorator (i/make-shared-context-callable-decorator invoker)
                                   :runnable-decorator (i/make-shared-context-runnable-decorator invoker))))
 ```
@@ -179,5 +180,26 @@ When we submit a task to the instrumented thread pool, the captured event timest
 executing the task.
 
 ```clojure
-@(.submit ^java.util.concurrent.ExecutorService instrumented-thread-pool ^java.util.concurrent.Callable #(+ 10 20))
+@(.submit ^java.util.concurrent.ExecutorService instrumented-thread-pool
+   ^java.util.concurrent.Callable #(+ 10 20))
 ```
+
+
+## Instrumenting a JDBC connection pool (any `javax.sql.DataSource` instance)
+
+JDBC operations involve creating a connection, preparing a statement and executing the SQL. We can instrument a
+connection pool to find out the time spent at each stage.
+
+```clojure
+(defn print-latency [event f] (let [start (System/currentTimeMillis)]
+                                (try (f)
+                                  (finally (printf "Event: %s, Latency: %d millis"
+                                             event (- (System/currentTimeMillis) start))))))
+;; assuming 'dbcp' is a connection pool
+(def instrumented-dbcp (j/instrument-datasource dbcp
+                         {:conn-creation-wrapper print-latency
+                          :stmt-creation-wrapper print-latency
+                          :sql-execution-wrapper print-latency}))
+```
+
+Now, whenever we execute an operation on `instrumented-dbcp` the time spent on each phase is printed separately.
