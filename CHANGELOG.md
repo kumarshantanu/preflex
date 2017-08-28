@@ -16,9 +16,7 @@ All notable changes to this project will be documented in this file. This change
 
 ## [WIP] 0.3.0 / 2017-August-??
 ### Added
-- Instrumentation
-  - JDBC instrumentation in `preflex.instrument.jdbc` namepace
-  - [TODO] Fast (using `volatile!`) thread-pool instrumentation with limited stages
+- JDBC instrumentation in `preflex.instrument.jdbc` namepace
 
 ### Changed
 - Thread pool instrumentation
