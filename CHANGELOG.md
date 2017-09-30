@@ -7,11 +7,24 @@ All notable changes to this project will be documented in this file. This change
   - Protocl `ITerminable` with `terminate` and `terminated?` fns
   - Have the stateful abstractions (thread pool, semaphore etc.) implement `ITerminable`
 - Resilience primitives
-  - Move to namespace `preflex.resilience`
   - Retry
   - Throttle
-- Hystrix emulation
-  - Command
+- Instrumentation
+  - Distinguish between SQL query (read), update (write) and stored proc (call) invocations
+
+
+## [WIP] 0.4.0 / 2017-October-??
+### Added
+- [TODO] Add either monad
+  - [TODO] Make task and resilence abstractions compatible with
+  - [TODO] Make either version for resilience operations
+- [TODO] Hystrix emulation
+  - [TODO] Command
+
+### Changed
+- Resilience primitives
+  - [TODO - BREAKING CHANGE] Move to namespace `preflex.resilience`
+  - [TODO] Make queue object accessible in bounded-thread pool impl, also accept queue as argument
 
 
 ## 0.3.0 / 2017-August-28
