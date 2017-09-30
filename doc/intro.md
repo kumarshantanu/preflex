@@ -10,7 +10,7 @@ and observability of your application using instrumentation, metrics and safety 
 Rest of the document assumes the following namespace aliases:
 
 ```clojure
-(require '[preflex.core            :as p])
+(require '[preflex.resilient       :as p])
 (require '[preflex.instrument      :as i])
 (require '[preflex.instrument.jdbc :as j])
 (require '[preflex.metrics         :as m])

@@ -7,7 +7,7 @@
 ;   You must not remove this notice, or any other, from this software.
 
 
-(ns preflex.impl
+(ns preflex.resilient.impl
   "This namespace is internal and subject to change across releases without notice."
   (:require
     [preflex.type :as t]

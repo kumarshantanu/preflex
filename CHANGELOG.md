@@ -23,7 +23,10 @@ All notable changes to this project will be documented in this file. This change
 
 ### Changed
 - Resilience primitives
-  - [TODO - BREAKING CHANGE] Move to namespace `preflex.resilience`
+  - [BREAKING CHANGE] Move namespaces
+    - `preflex.core`  to `preflex.resilient`
+    - `preflex.error` to `preflex.resilient.error`
+    - `preflex.impl`  to `preflex.resilient.impl`
   - [TODO] Make queue object accessible in bounded-thread pool impl, also accept queue as argument
 
 

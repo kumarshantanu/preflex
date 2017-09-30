@@ -7,25 +7,25 @@
 ;   You must not remove this notice, or any other, from this software.
 
 
-(ns preflex.core
+(ns preflex.resilient
   "Resilience abstractions with backpressure:
   * Bounded thread pool - (compared to unbounded thread pool) helps keep computation and memory consumption in check
   * Circuit breaker     - cuts off execution when a resource is unavailable, and resumes when it is available again
   * Semaphore           - limits total number of clients competing for resources
   * Fallback            - When primary computation fails, fall back to standby"
   (:require
-    [preflex.impl      :as im]
-    [preflex.internal  :as in]
-    [preflex.invokable :as iv]
-    [preflex.error     :as e]
-    [preflex.metrics   :as m]
-    [preflex.type      :as t]
-    [preflex.util      :as u])
+    [preflex.resilient.error  :as e]
+    [preflex.resilient.impl   :as im]
+    [preflex.internal         :as in]
+    [preflex.invokable        :as iv]
+    [preflex.metrics          :as m]
+    [preflex.type             :as t]
+    [preflex.util             :as u])
   (:import
     [java.util.concurrent
      ArrayBlockingQueue ExecutorService Future Semaphore ThreadPoolExecutor TimeUnit
      ExecutionException RejectedExecutionException TimeoutException]
-    [preflex.impl RetryState]))
+    [preflex.resilient.impl RetryState]))
 
 
 ;; ----- bounded thread pool -----
