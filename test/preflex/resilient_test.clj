@@ -9,7 +9,7 @@
 
 (ns preflex.resilient-test
   (:require [clojure.test :refer :all]
-            [preflex.resilient      :as p]
+            [preflex.resilient      :as r]
             [preflex.resilient.impl :as im]
             [preflex.type           :as t]
             [preflex.util           :as u])
@@ -27,7 +27,7 @@
 (defmacro with-test-pool
   [pool & body]
   (assert (symbol? pool))
-  `(let [~pool (p/make-bounded-thread-pool pool-size queue-len {:name "test-pool"
+  `(let [~pool (r/make-bounded-thread-pool pool-size queue-len {:name "test-pool"
                                                                 :core-thread-count core-size})]
      ~@body
      (.shutdown ~(vary-meta pool assoc :tag "ExecutorService"))))
@@ -41,57 +41,57 @@
     (testing "raw thread pool"
       (with-test-pool pool
         (is (instance? ExecutorService pool) "created instance is a thread-pool")
-        (is (= 2 @(p/future-call-via pool #(swap! sint inc))))
+        (is (= 2 @(r/future-call-via pool #(swap! sint inc))))
         (is (= 2 @sint) "thread-pool task updates the accumulator"))
       ;; submit enough tasks to fill up the thread pool
       (with-test-pool pool
         (dotimes [i (+ pool-size queue-len)]
-          (p/future-call-via pool idle))
+          (r/future-call-via pool idle))
         (is (thrown-with-msg? ExceptionInfo #"Thread-pool rejected execution"
-              (p/future-call-via pool idle)) "any more task submission should be rejected")))
+              (r/future-call-via pool idle)) "any more task submission should be rejected")))
     (testing "with-async-executor"
       ;; normal execution
       (with-test-pool pool
-        (is (= 30 (p/via-thread-pool pool {:task-timeout [1000 :millis]} #(+ 10 20)))
+        (is (= 30 (r/via-thread-pool pool {:task-timeout [1000 :millis]} #(+ 10 20)))
           "direct - instantenous async task")
-        (is (= 30 ((p/wrap-thread-pool pool {:task-timeout [1000 :millis]} #(+ 10 20))))
+        (is (= 30 ((r/wrap-thread-pool pool {:task-timeout [1000 :millis]} #(+ 10 20))))
           "wrapper - instantenous async task")
-        (is (= 30 (p/with-thread-pool pool {:task-timeout [1000 :millis]} (+ 10 20)))
+        (is (= 30 (r/with-thread-pool pool {:task-timeout [1000 :millis]} (+ 10 20)))
           "macro - instantenous async task"))
       ;; timeout
       (with-test-pool pool
         (is (thrown-with-msg? ExceptionInfo #"Operation timed out"
-              (p/via-thread-pool pool {:task-timeout [100 :millis]} idle))
+              (r/via-thread-pool pool {:task-timeout [100 :millis]} idle))
           "direct - timed out async task")
         (is (thrown-with-msg? ExceptionInfo #"Operation timed out"
-              ((p/wrap-thread-pool pool {:task-timeout [100 :millis]} idle)))
+              ((r/wrap-thread-pool pool {:task-timeout [100 :millis]} idle)))
           "wrapper - timed out async task")
         (is (thrown-with-msg? ExceptionInfo #"Operation timed out"
-              (p/with-thread-pool pool {:task-timeout [100 :millis]} (idle)))
+              (r/with-thread-pool pool {:task-timeout [100 :millis]} (idle)))
           "macro - timed out async task"))
       ;; execution error
       (with-test-pool pool
         (is (thrown-with-msg? ExceptionInfo #"Exception occurred"
-              (p/via-thread-pool pool {:task-timeout [100 :millis]} #(throw (Exception. "foo"))))
+              (r/via-thread-pool pool {:task-timeout [100 :millis]} #(throw (Exception. "foo"))))
           "direct - error async task")
         (is (thrown-with-msg? ExceptionInfo #"Exception occurred"
-              ((p/wrap-thread-pool pool {:task-timeout [100 :millis]} #(throw (Exception. "foo")))))
+              ((r/wrap-thread-pool pool {:task-timeout [100 :millis]} #(throw (Exception. "foo")))))
           "wrapper - error async task")
         (is (thrown-with-msg? ExceptionInfo #"Exception occurred"
-              (p/with-thread-pool pool {:task-timeout [100 :millis]} (throw (Exception. "foo"))))
+              (r/with-thread-pool pool {:task-timeout [100 :millis]} (throw (Exception. "foo"))))
           "macro - error async task"))
       ;; submission rejection
       (with-test-pool pool
         (dotimes [i (+ pool-size queue-len)]
-          (p/future-call-via pool idle))
+          (r/future-call-via pool idle))
         (is (thrown-with-msg? ExceptionInfo #"Thread-pool rejected execution"
-              (p/via-thread-pool pool {:task-timeout [100 :millis]} #(+ 10 20)))
+              (r/via-thread-pool pool {:task-timeout [100 :millis]} #(+ 10 20)))
           "direct - any more task submission should be rejected")
         (is (thrown-with-msg? ExceptionInfo #"Thread-pool rejected execution"
-              ((p/wrap-thread-pool pool {:task-timeout [100 :millis]} #(+ 10 20))))
+              ((r/wrap-thread-pool pool {:task-timeout [100 :millis]} #(+ 10 20))))
           "wrapper - any more task submission should be rejected")
         (is (thrown-with-msg? ExceptionInfo #"Thread-pool rejected execution"
-              (p/with-thread-pool pool {:task-timeout [100 :millis]} (+ 10 20)))
+              (r/with-thread-pool pool {:task-timeout [100 :millis]} (+ 10 20)))
           "macro - any more task submission should be rejected")))))
 
 
@@ -99,52 +99,52 @@
   (let [core-size 10
         pool-size 10
         queue-len 10
-        thread-pool (p/make-bounded-thread-pool pool-size queue-len {:name "test-pool"
+        thread-pool (r/make-bounded-thread-pool pool-size queue-len {:name "test-pool"
                                                                      :core-thread-count core-size})
         idle #(u/sleep-millis 1000)
-        sem (p/make-counting-semaphore 10 {:name "test-semaphore"})]
+        sem (r/make-counting-semaphore 10 {:name "test-semaphore"})]
     (is (im/counting-semaphore? sem))
     (is (= "test-semaphore" (name sem)))
     (testing "Semaphore acquisition"
-      (is (= 5 (p/via-semaphore sem #(+ 2 3))) "Semaphore allows acquisition when available")
-      (is (= 5 ((p/wrap-semaphore sem #(+ 2 3)))) "Semaphore allows acquisition when available")
-      (is (= 5 (p/with-semaphore sem {} (+ 2 3))) "Semaphore allows acquisition when available"))
+      (is (= 5 (r/via-semaphore sem #(+ 2 3))) "Semaphore allows acquisition when available")
+      (is (= 5 ((r/wrap-semaphore sem #(+ 2 3)))) "Semaphore allows acquisition when available")
+      (is (= 5 (r/with-semaphore sem {} (+ 2 3))) "Semaphore allows acquisition when available"))
     (testing "Semaphore rejection"
       ;; occupy available semaphores using async jobs
       (let [counter (atom 0)]
         (dotimes [_ 10]
-          (p/future-call-via thread-pool (fn [] (p/via-semaphore sem #(do (swap! counter inc)
+          (r/future-call-via thread-pool (fn [] (r/via-semaphore sem #(do (swap! counter inc)
                                                                         (idle))))))
         ;; wait until all available semaphores are taken
         (while (< ^long @counter 10)
           (u/sleep-millis 10)))
       (is (thrown-with-msg? ExceptionInfo #"Semaphore rejected execution"
-            (p/via-semaphore sem #(+ 2 3))) "Semaphore rejects acquisition when exhausted")
+            (r/via-semaphore sem #(+ 2 3))) "Semaphore rejects acquisition when exhausted")
       (is (thrown-with-msg? ExceptionInfo #"Semaphore rejected execution"
-            ((p/wrap-semaphore sem #(+ 2 3)))) "Semaphore rejects acquisition when exhausted")
+            ((r/wrap-semaphore sem #(+ 2 3)))) "Semaphore rejects acquisition when exhausted")
       (is (thrown-with-msg? ExceptionInfo #"Semaphore rejected execution"
-            (p/with-semaphore sem {} (+ 2 3))) "Semaphore rejects acquisition when exhausted"))
+            (r/with-semaphore sem {} (+ 2 3))) "Semaphore rejects acquisition when exhausted"))
     (.shutdown ^ExecutorService thread-pool)))
 
 
 (deftest test-binary-semaphore
   (let [counter (atom 0)
         idle #(u/sleep-millis 1000)
-        sem  (p/make-binary-semaphore {:name "test-semaphore"})
-        j-1  (future (p/via-semaphore sem #(do (swap! counter inc)
+        sem  (r/make-binary-semaphore {:name "test-semaphore"})
+        j-1  (future (r/via-semaphore sem #(do (swap! counter inc)
                                              (idle))))]
     ;; wait until the semaphore is taken
     (while (zero? ^long @counter)
       (u/sleep-millis 10))
     (is (thrown-with-msg? ExceptionInfo #"Semaphore rejected execution"
-          (p/via-semaphore sem #(+ 2 3))) "Semaphore rejects acquisition when exhausted")
+          (r/via-semaphore sem #(+ 2 3))) "Semaphore rejects acquisition when exhausted")
     (deref j-1)  ; wait for idle
     (is (= 1 @counter))))
 
 
 (deftest test-serial-fault-detector
   (let [nn 10
-        fd (p/make-serial-fault-detector nn)]
+        fd (r/make-serial-fault-detector nn)]
     (testing "Un-initialized"
       (is (not (t/fault? fd)))
       (is (= {:count 0} (deref fd))))
@@ -179,7 +179,7 @@
         yy 100
         vv (volatile! 1488033798157)
         v+ (fn [^long n] (vswap! vv #(+ ^long % n)))
-        fd (p/make-discrete-fault-detector xx yy {:now-finder #(deref vv)})]
+        fd (r/make-discrete-fault-detector xx yy {:now-finder #(deref vv)})]
     (testing "Un-initialized"
       (is (not (t/fault? fd)))
       (is (= {:count 0} (deref fd))))
@@ -210,7 +210,7 @@
         yy 100
         vv (volatile! 1488033798157)
         v+ (fn [^long n] (vswap! vv #(+ ^long % n)))
-        fd (p/make-rolling-fault-detector xx yy {:bucket-interval 100
+        fd (r/make-rolling-fault-detector xx yy {:bucket-interval 100
                                                  :deref-head? true
                                                  :event-id-fn #(deref vv)})]
     (testing "Un-initialized"
@@ -241,7 +241,7 @@
   (let [hh 100
         vv (volatile! 1488033798157)
         v+ (fn [^long n] (vswap! vv #(+ ^long % n)))
-        rr (p/make-half-open-retry-resolver hh {:now-finder #(deref vv)
+        rr (r/make-half-open-retry-resolver hh {:now-finder #(deref vv)
                                                 :open-duration (* 2 hh)})]
     (testing "Un-initialized"
       (is (not (t/retry? rr))))
@@ -280,56 +280,56 @@
               clojure.lang.IDeref (deref   [_] @vrr)
               t/IReinitializable  (reinit! [_] (vreset! vrr {:retry? false}))
               t/IRetryResolver    (retry?  [_] (:retry? @vrr)))
-        ccb (p/make-circuit-breaker
+        ccb (r/make-circuit-breaker
               mfd
               mrr
               {:name "test-circuit-breaker"})]
     (testing "Initial state"
       (is (= "test-circuit-breaker" (name ccb)))
       (is (:state-connected? (deref ccb)) "Intial circuit-breaker state should be logical true")
-      (is (= 5 (p/via-circuit-breaker ccb #(+ 2 3)))))
+      (is (= 5 (r/via-circuit-breaker ccb #(+ 2 3)))))
     (testing "Fault"
       (vswap! vfd assoc :fault? true :nfault 10)
       (is (thrown-with-msg? ExceptionInfo #"Circuit-breaker is open"
-            (p/via-circuit-breaker ccb #(+ 2 3))) "circuit breaker open, so any more calls should be rejected"))
+            (r/via-circuit-breaker ccb #(+ 2 3))) "circuit breaker open, so any more calls should be rejected"))
     (testing "Retry"
       (vswap! vrr assoc :retry? true)
-      (is (thrown? Exception (p/via-circuit-breaker ccb #(throw (Exception. "test")))) "retry failure")
+      (is (thrown? Exception (r/via-circuit-breaker ccb #(throw (Exception. "test")))) "retry failure")
       (is (not (:state-connected? (deref ccb))) "retry failure should keep the circuit-breaker tripped")
-      (is (= 5 (p/via-circuit-breaker ccb #(+ 2 3))) "retry success")
+      (is (= 5 (r/via-circuit-breaker ccb #(+ 2 3))) "retry success")
       (is (:state-connected? (deref ccb)) "retry success should lead to healed circuit-breaker"))))
 
 
 (deftest test-circuit-breaker-integration
  (let [bi 100  ; bucket interval in millis
-       fd (p/make-rolling-fault-detector
+       fd (r/make-rolling-fault-detector
             10  ; X errors
             1000 ; in Y milliseconds
             {:bucket-interval bi})
-       rr (p/make-half-open-retry-resolver 100)
+       rr (r/make-half-open-retry-resolver 100)
        vc (volatile! {:trip-count 0
                       :connect-count 0})
-       cb (p/make-circuit-breaker
+       cb (r/make-circuit-breaker
             fd
             rr
             {:on-trip    (fn [x] (vswap! vc update :trip-count inc))
              :on-connect (fn [x] (vswap! vc update :connect-count inc))})
-       cb-err (fn [] (p/via-circuit-breaker cb #(throw (Exception. "test"))))]
+       cb-err (fn [] (r/via-circuit-breaker cb #(throw (Exception. "test"))))]
    (is (:state-connected? (deref cb)) "Intial circuit-breaker state should be logical true")
-   (is (= 5 (p/via-circuit-breaker cb #(+ 2 3))))
+   (is (= 5 (r/via-circuit-breaker cb #(+ 2 3))))
    (testing "[trip->recover] Circuit-breaker open, followed by recovery"
      (dotimes [_ 10]  ; mix of alternating success and failure cases
-       (is (= 5 (p/via-circuit-breaker cb #(+ 2 3))))
+       (is (= 5 (r/via-circuit-breaker cb #(+ 2 3))))
        (is (thrown? Exception (cb-err))))
      (u/sleep-millis (+ bi 20))
      (is (thrown-with-msg? ExceptionInfo #"Circuit-breaker is open"
-           (p/via-circuit-breaker cb #(+ 2 3))) "circuit breaker open, so any more calls should be rejected")
+           (r/via-circuit-breaker cb #(+ 2 3))) "circuit breaker open, so any more calls should be rejected")
      (is (= {:trip-count 1
              :connect-count 0} @vc))
      (u/sleep-millis bi)
-     (is (= 5 (p/via-circuit-breaker cb #(+ 2 3))) "circuit breaker half-open, so one call should be allowed")
+     (is (= 5 (r/via-circuit-breaker cb #(+ 2 3))) "circuit breaker half-open, so one call should be allowed")
      (is (:state-connected? (deref cb)) "state should be connected due to the successful recovery test")
-     (is (= 5 (p/via-circuit-breaker cb #(+ 2 3)))
+     (is (= 5 (r/via-circuit-breaker cb #(+ 2 3)))
        "last call was success, so circuit breaker should be closed and call should be allowed")
      (is (= {:trip-count 1
              :connect-count 1} @vc))
@@ -342,7 +342,7 @@
        (is (thrown? Exception (cb-err))))
      (u/sleep-millis bi)
      (is (thrown-with-msg? ExceptionInfo #"Circuit-breaker is open"
-           (p/via-circuit-breaker cb #(+ 2 3))) "circuit breaker half-open, but must wait till window-close to allow")
+           (r/via-circuit-breaker cb #(+ 2 3))) "circuit breaker half-open, but must wait till window-close to allow")
      (is (= {:trip-count 1
              :connect-count 0} @vc))
      (u/sleep-millis bi)
@@ -355,18 +355,18 @@
 
 (deftest test-success-failure-tracker
   (let [status (volatile! nil)]
-    (is (= 10 (p/via-success-failure-tracker (fn [?] (vreset! status ?)) #(+ 4 6))))
+    (is (= 10 (r/via-success-failure-tracker (fn [?] (vreset! status ?)) #(+ 4 6))))
     (is @status)
-    (is (thrown? Exception (p/via-success-failure-tracker (fn [?] (vreset! status ?)) #(throw (Exception. "test")))))
+    (is (thrown? Exception (r/via-success-failure-tracker (fn [?] (vreset! status ?)) #(throw (Exception. "test")))))
     (is (not @status))))
 
 
 (deftest test-latency-tracker
   (let [result (volatile! [nil 0])]
-    (is (= 10 (p/via-latency-tracker (fn [? lat] (vreset! result [? lat])) #(do (Thread/sleep 1) (+ 4 6)))))
+    (is (= 10 (r/via-latency-tracker (fn [? lat] (vreset! result [? lat])) #(do (Thread/sleep 1) (+ 4 6)))))
     (is (= true (first @result)))
     (is (<= 1 (second @result)))
-    (is (thrown? Exception (p/via-latency-tracker (fn [? lat] (vreset! result [? lat]))
+    (is (thrown? Exception (r/via-latency-tracker (fn [? lat] (vreset! result [? lat]))
                              #(do (Thread/sleep 2)
                                 (throw (Exception. "test"))))))
     (is (= false (first @result)))
@@ -374,8 +374,8 @@
 
 
 (deftest test-fallback
-  (is (= 10 (p/via-fallback nil #(+ 4 6))))
-  (is (thrown? Exception (p/via-fallback nil #(throw (Exception. "test")))))
-  (is (= 10 (p/via-fallback [#(do 12)] #(+ 4 6))))
-  (is (= 30 (p/via-fallback [#(throw (Exception. "test")) #(+ 10 20)] #(throw (Exception. "test")))))
-  (is (= 50 (p/via-fallback [#(+ 20 30) #(throw (Exception. "test"))] #(throw (Exception. "test"))))))
+  (is (= 10 (r/via-fallback nil #(+ 4 6))))
+  (is (thrown? Exception (r/via-fallback nil #(throw (Exception. "test")))))
+  (is (= 10 (r/via-fallback [#(do 12)] #(+ 4 6))))
+  (is (= 30 (r/via-fallback [#(throw (Exception. "test")) #(+ 10 20)] #(throw (Exception. "test")))))
+  (is (= 50 (r/via-fallback [#(+ 20 30) #(throw (Exception. "test"))] #(throw (Exception. "test"))))))

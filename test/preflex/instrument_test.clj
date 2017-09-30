@@ -10,9 +10,9 @@
 (ns preflex.instrument-test
   (:require
     [clojure.test :refer :all]
-    [preflex.core       :as core]
     [preflex.instrument :as instru]
-    [preflex.internal   :as in])
+    [preflex.internal   :as in]
+    [preflex.resilient  :as r])
   (:import
     [java.util.concurrent ExecutorService]
     [preflex.instrument.concurrent FutureWrapper SharedContextFuture]))
@@ -30,7 +30,7 @@
 
 (deftest test-instrument-thread-pool
   (testing "default instrumentation"
-    (with-active-thread-pool [^ExecutorService thread-pool (core/make-bounded-thread-pool 10 10)]
+    (with-active-thread-pool [^ExecutorService thread-pool (r/make-bounded-thread-pool 10 10)]
       (doseq [pool [thread-pool (:thread-pool thread-pool)]]
         (let [instru-pool (instru/instrument-thread-pool pool {})]
           (is (nil?
@@ -38,7 +38,7 @@
           (is (= 10
                 @(.submit ^ExecutorService instru-pool ^Callable #(do 10))))))))
   (testing "shared context instrumentation"
-    (with-active-thread-pool [^ExecutorService thread-pool (core/make-bounded-thread-pool 10 10)]
+    (with-active-thread-pool [^ExecutorService thread-pool (r/make-bounded-thread-pool 10 10)]
       (let [instru-pool (instru/instrument-thread-pool thread-pool
                           instru/shared-context-thread-pool-task-wrappers-millis)]
         (let [^FutureWrapper fut (.submit ^ExecutorService instru-pool ^Runnable #(do 10))
@@ -72,7 +72,7 @@
           (is (contains? @shared-context :duration-execute-ms))
           (is (contains? @shared-context :duration-response-ms))))))
   (testing "invoker with shared context instrumentation"
-    (with-active-thread-pool [^ExecutorService thread-pool (core/make-bounded-thread-pool 10 10)]
+    (with-active-thread-pool [^ExecutorService thread-pool (r/make-bounded-thread-pool 10 10)]
       (let [invoker (fn [g context-atom] (swap! context-atom assoc :added-by-invoker 20) (g))
             instru-pool (instru/instrument-thread-pool thread-pool
                           (-> instru/shared-context-thread-pool-task-wrappers-nanos
