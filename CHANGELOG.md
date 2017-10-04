@@ -13,7 +13,7 @@ All notable changes to this project will be documented in this file. This change
   - Distinguish between SQL query (read), update (write) and stored proc (call) invocations
 
 
-## [WIP] 0.4.0 / 2017-October-??
+## 0.4.0-alpha1 / 2017-October-04
 ### Added
 - Add 'either' fault-handling abstraction in `preflex.either` ns (adaptation of the either-monad)
 - Add Hystrix-metrics emulation helpers
@@ -30,6 +30,7 @@ All notable changes to this project will be documented in this file. This change
     - `preflex.core`  to `preflex.resilient`
     - `preflex.error` to `preflex.resilient.error`
     - `preflex.impl`  to `preflex.resilient.impl`
+  - [TODO - BREAKING CHANGE] Make duration arguments as `preflex.type.IDuration` instead of milliseconds
 
 
 ## 0.3.0 / 2017-August-28

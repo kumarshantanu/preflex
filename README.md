@@ -13,6 +13,7 @@ Preflex provides the following facilities:
   * Semaphore execution - cuts off execution on overload, maintains tasks under a threshold
   * Circuit breaker - cuts off execution on repeated errors, auto-heals when error recovers
   * Fall-back execution - follows up a failed operation with fall-back operations
+  * Either result - fault-handling across units of functionality
 * Instrumentation
   * Success/failure tracking - tracks success/failure of an operation
   * Latency tracking - tracks latency of an operation
@@ -27,7 +28,7 @@ Preflex provides the following facilities:
 
 ## Usage
 
-Leiningen coordinates: `[preflex "0.3.0"]`
+Leiningen coordinates: `[preflex "0.4.0-alpha1"]`
 
 See [documentation](doc/intro.md)
 
