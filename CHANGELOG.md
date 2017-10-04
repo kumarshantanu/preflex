@@ -15,9 +15,7 @@ All notable changes to this project will be documented in this file. This change
 
 ## [WIP] 0.4.0 / 2017-October-??
 ### Added
-- [TODO] Add either monad
-  - [TODO] Make task and resilence abstractions compatible with
-  - [TODO] Make either version for resilience operations
+- Add 'either' fault-handling abstraction in `preflex.either` ns (adaptation of the either-monad)
 - [TODO] Hystrix emulation
   - [TODO] Command
 
@@ -27,7 +25,6 @@ All notable changes to this project will be documented in this file. This change
     - `preflex.core`  to `preflex.resilient`
     - `preflex.error` to `preflex.resilient.error`
     - `preflex.impl`  to `preflex.resilient.impl`
-  - [TODO] Make queue object accessible in bounded-thread pool impl, also accept queue as argument
 
 
 ## 0.3.0 / 2017-August-28
