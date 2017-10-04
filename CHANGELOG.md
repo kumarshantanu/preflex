@@ -16,8 +16,13 @@ All notable changes to this project will be documented in this file. This change
 ## [WIP] 0.4.0 / 2017-October-??
 ### Added
 - Add 'either' fault-handling abstraction in `preflex.either` ns (adaptation of the either-monad)
-- [TODO] Hystrix emulation
-  - [TODO] Command
+- Add Hystrix-metrics emulation helpers
+  - Command metrics
+  - Thread pool metrics
+  - Metrics collectors for use with resilience primitives
+  - Metrics reporters for emitting metrics data
+  - [TODO] Tests for collecting and reporting metrics
+  - [TODO] Tests for thread-pool metrics
 
 ### Changed
 - Resilience primitives
