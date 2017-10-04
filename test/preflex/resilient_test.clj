@@ -8,11 +8,12 @@
 
 
 (ns preflex.resilient-test
-  (:require [clojure.test :refer :all]
-            [preflex.resilient      :as r]
-            [preflex.resilient.impl :as im]
-            [preflex.type           :as t]
-            [preflex.util           :as u])
+  (:require
+    [clojure.test :refer :all]
+    [preflex.resilient      :as r]
+    [preflex.resilient.impl :as im]
+    [preflex.type           :as t]
+    [preflex.util           :as u])
   (:import
     [java.util.concurrent
      ExecutorService
