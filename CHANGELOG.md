@@ -9,13 +9,14 @@ All notable changes to this project will be documented in this file. This change
 - Resilience primitives
   - Retry
   - Throttle
-- Instrumentation
-  - Distinguish between SQL query (read), update (write) and stored proc (call) invocations
 
 
-## 0.4.0-alpha1 / 2017-October-04
+## [WIP] 0.4.0-alpha2 / 2017-October-??
 ### Added
 - Add 'either' fault-handling abstraction in `preflex.either` ns (adaptation of the either-monad)
+  - [TODO] Drop `Success` wrapper; treat all non-`Failure` as success
+  - [TODO] In `bind` dispatch on `Failure` and non-`Failure` only
+  - [TODO] Verify that argument to `failure` (or success) is not an either-result already
 - Add Hystrix-metrics emulation helpers
   - Command metrics
   - Thread pool metrics
@@ -31,6 +32,10 @@ All notable changes to this project will be documented in this file. This change
     - `preflex.error` to `preflex.resilient.error`
     - `preflex.impl`  to `preflex.resilient.impl`
   - [TODO - BREAKING CHANGE] Make duration arguments as `preflex.type.IDuration` instead of milliseconds
+- Instrumentation
+  - [TODO] Distinguish between SQL query (read), update (write) and stored proc (call) invocations
+  - [TODO] Support connection.close() - Find number of busy connections
+  - [TODO] Support statement.close() - Find number of busy statements
 
 
 ## 0.3.0 / 2017-August-28
