@@ -8,23 +8,38 @@
 
 
 (ns preflex.either
-  "Success and Failure are the dual of each other with respect to an operation result. This namespaces provides unified,
+  "Success and Failure are the dual of each other with respect to an operation result. This namespace provides unified,
   standalone and composable mechanism to represent and process operation results as either success or failure.
   Reference:
     https://www.schoolofhaskell.com/school/starting-with-haskell/basics-of-haskell/10_Error_Handling
     https://youtu.be/3y7xzH8jB8A?t=1390"
   (:require
-    [preflex.internal :as i])
-  (:import
-    [clojure.lang IDeref]))
+    [preflex.internal :as i]))
 
 
-(defrecord Failure [result] IDeref (deref [_] result))
-(defrecord Success [result] IDeref (deref [_] result))
+(defrecord Failure [result])
 
 
-(defn failure "Represent given result as failure." ([result] (->Failure result)) ([] (->Failure nil)))
-(defn success "Represent given result as success." ([result] (->Success result)) ([] (->Success nil)))
+(defn failure
+  "Represent given result as failure."
+  ([result] (if (instance? Failure result)
+              result
+              (->Failure result)))
+  ([]       (->Failure nil)))
+
+
+(defn success
+  "Represent given result as success. If argument is a failure, then it is returned as it is."
+  ([result] result)
+  ([]       nil))
+
+
+(defn deref-either
+  "Dereference an either-result to its raw result."
+  [result]
+  (if (instance? Failure result)
+    (.-result ^Failure result)
+    result))
 
 
 (defmacro do-either
@@ -36,9 +51,7 @@
   [& body]
   `(try
      (let [result# (do ~@body)]
-       (if (or (instance? Success result#) (instance? Failure result#))
-         result#
-         (success result#)))
+       (success result#))
      (catch Exception e#
        (failure e#))))
 
@@ -52,34 +65,32 @@
 
 
 (defn bind
-  "Given an either-result (i.e. preflex.either.Success or preflex.either.Failure) bind it with a function of
-  corresponding type, i.e. success-f or failure-f. In other words, based on `result type` a call is made as follows:
-  Either-result type      Function-called
-  ------------------      ---------------
-  preflex.either.Success  (success-f success-result)
-  preflex.either.Failure  (failure-f failure-result)  ; returns failure-result as-is when failure-f is unspecified
-  <any other type>        IllegalArgumentException is thrown
+  "Given an either-result (success or failure) bind it with a function of respective type, i.e. success-f or failure-f.
+  In other words, based on `result type` a call is made as follows:
+  Either-result type  Function-called
+  ------------------  ---------------
+       success        (success-f success-result)
+       failure        (failure-f failure-result)  ; returns failure-result as-is when failure-f is unspecified
   See:
     bind->
     failure
     success
+    deref-either
   Example:
     (-> (place-order)                   ; return placed-order details as either-result
       (bind check-inventory)            ; check inventory and return success or failure result
       (bind cancel-order process-order) ; cancel order on failed inventory check, process order on success
       (bind fulfil-order)               ; fulfil order if order is processed successfully
       ;; finally extract the result
-      deref)"
+      deref-either)"
   ([either-result success-f]
-    (condp instance? either-result
-      Failure either-result
-      Success (success-f (.-result ^Success either-result))
-      (i/expected "preflex.either.Success or preflex.either.Failure instance" either-result)))
+    (if (instance? Failure either-result)
+      either-result
+      (success-f either-result)))
   ([either-result failure-f success-f]
-    (condp instance? either-result
-      Failure (failure-f (.-result ^Failure either-result))
-      Success (success-f (.-result ^Success either-result))
-      (i/expected "preflex.either.Success or preflex.either.Failure instance" either-result))))
+    (if (instance? Failure either-result)
+      (failure-f (.-result ^Failure either-result))
+      (success-f either-result))))
 
 
 (defmacro bind->

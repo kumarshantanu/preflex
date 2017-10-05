@@ -14,9 +14,9 @@ All notable changes to this project will be documented in this file. This change
 ## [WIP] 0.4.0-alpha2 / 2017-October-??
 ### Added
 - Add 'either' fault-handling abstraction in `preflex.either` ns (adaptation of the either-monad)
-  - [TODO] Drop `Success` wrapper; treat all non-`Failure` as success
-  - [TODO] In `bind` dispatch on `Failure` and non-`Failure` only
-  - [TODO] Verify that argument to `failure` (or success) is not an either-result already
+  - Helper fns `success`, `failure`
+  - The `bind` (and `bind->`) dispatcher
+  - Helpers `do-either`, `deref-either`
 - Add Hystrix-metrics emulation helpers
   - Command metrics
   - Thread pool metrics

@@ -13,17 +13,22 @@
     [preflex.either :as either]))
 
 
-(deftest test-service->web
-  (is (thrown? IllegalArgumentException
-        (either/bind :foo identity)))
-  (is :foo (-> (either/do-either :foo)
-             (either/bind identity)))
+(deftest test-basic
+  (is (= :foo (either/deref-either (either/success :foo))) "deref success")
+  (is (= :foo (either/deref-either (either/failure :foo))) "deref failure")
+  (is (= :foo (either/deref-either (either/do-either :foo))) "deref do-either result"))
+
+
+(deftest test-bind
+  (is (= :foo (either/bind :foo identity)))
+  (is (= :foo (-> (either/do-either :foo)
+                (either/bind identity))))
   (is (thrown? IllegalStateException
         (-> (either/do-either (throw (IllegalStateException. "test error")))
-          (either/bind #(throw %) identity))))
-  (is [:foo] (either/bind-> (either/do-either :foo)
-               ((either/either vector))
-               identity))
+          (either/bind #(throw %) identity))) "do-either throws exception")
+  (is (= [:foo] (either/bind-> (either/do-either :foo)
+                  ((either/either vector))
+                  identity)))
   (is (thrown? IllegalStateException
         (either/bind-> (either/do-either (throw (IllegalStateException. "test error")))
           (#(throw %) identity)))))
