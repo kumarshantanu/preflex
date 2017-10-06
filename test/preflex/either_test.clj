@@ -26,9 +26,8 @@
   (is (thrown? IllegalStateException
         (-> (either/do-either (throw (IllegalStateException. "test error")))
           (either/bind #(throw %) identity))) "do-either throws exception")
-  (is (= [:foo] (either/bind-> (either/do-either :foo)
-                  ((either/either vector))
-                  identity)))
+  (is (= [:foo] (either/bind-deref-> (either/do-either :foo)
+                  ((either/either vector)))))
   (is (thrown? IllegalStateException
-        (either/bind-> (either/do-either (throw (IllegalStateException. "test error")))
+        (either/bind-deref-> (either/do-either (throw (IllegalStateException. "test error")))
           (#(throw %) identity)))))

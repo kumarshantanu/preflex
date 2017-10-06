@@ -74,7 +74,7 @@
        success        (success-f success-result)
        failure        (failure-f failure-result)  ; returns failure-result as-is when failure-f is unspecified
   See:
-    bind->
+    bind-deref->
     failure
     success
     deref-either
@@ -95,18 +95,17 @@
       (success-f either-result))))
 
 
-(defmacro bind->
+(defmacro bind-deref->
   "Rewrite the arguments `result` and `exprs` as thread-first form using `bind`.
   For example, the expression below:
   (bind-> result
     (foo bar)
-    baz
-    (identity identity))
+    baz)
   is rewritten as the following:
   (-> result
     (bind foo bar)
     (bind baz)
-    (bind identity identity))
+    deref-either)
   See:
     bind"
   [result & exprs]
@@ -118,4 +117,5 @@
                               :otherwise      (i/expected "expression of one or two forms" x)))
                 exprs)]
     `(-> ~result
-       ~@forms)))
+       ~@forms
+       deref-either)))
