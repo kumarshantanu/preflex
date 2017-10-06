@@ -29,8 +29,10 @@
 
 
 (defn success
-  "Represent given result as success. If argument is a failure, then it is returned as it is."
-  ([result] result)
+  "Represent given result as success. If the argument is a failure, then throw exception."
+  ([result] (if (instance? Failure result)
+              (throw (IllegalArgumentException. "Cannot convert failure into success."))
+              result))
   ([]       nil))
 
 
