@@ -14,7 +14,9 @@
     https://www.schoolofhaskell.com/school/starting-with-haskell/basics-of-haskell/10_Error_Handling
     https://youtu.be/3y7xzH8jB8A?t=1390"
   (:require
-    [preflex.internal :as i]))
+    [preflex.internal :as i])
+  (:import
+    [clojure.lang Cons]))
 
 
 (defrecord Failure [result])
@@ -74,7 +76,7 @@
        success        (success-f success-result)
        failure        (failure-f failure-result)  ; returns failure-result as-is when failure-f is unspecified
   See:
-    bind-deref->
+    bind-deref
     failure
     success
     deref-either
@@ -95,11 +97,11 @@
       (success-f either-result))))
 
 
-(defmacro bind-deref->
+(defmacro bind-deref
   "Rewrite the arguments `result` and `exprs` as thread-first form using `bind`.
   For example, the expression below:
   (bind-> result
-    (foo bar)
+    [foo bar]
     baz)
   is rewritten as the following:
   (-> result
@@ -110,11 +112,15 @@
     bind"
   [result & exprs]
   (let [forms (mapv (fn [x] (cond
+                              (keyword? x)    `(bind ~x)
                               (symbol? x)     `(bind ~x)
-                              (and (list? x)
+                              (list? x)       `(bind ~x)
+                              (instance?
+                                Cons x)       `(bind ~x)
+                              (and (vector? x)
                                 (#{1 2}
                                   (count x))) `(bind ~@x)
-                              :otherwise      (i/expected "expression of one or two forms" x)))
+                              :otherwise      (i/expected "vector of one or two forms" x)))
                 exprs)]
     `(-> ~result
        ~@forms
