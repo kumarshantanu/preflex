@@ -35,7 +35,8 @@ import java.util.Calendar;
 import preflex.instrument.task.CallTask1;
 import preflex.instrument.task.Wrapper;
 
-public class PreparedStatementWrapper<SQLExecution> extends StatementWrapper<SQLExecution>
+public class PreparedStatementWrapper<JdbcStatementCreation, SQLExecution>
+extends StatementWrapper<JdbcStatementCreation, SQLExecution>
 implements PreparedStatement {
 
     private final PreparedStatement pstmt;
@@ -45,9 +46,10 @@ implements PreparedStatement {
     private final SQLExecution preparedStatementSQLEvent;
 
     public PreparedStatementWrapper(final Connection conn, final PreparedStatement pstmt, final String sql,
-            final JdbcEventFactory<?, ?, SQLExecution> eventFactory,
+            final JdbcEventFactory<?, JdbcStatementCreation, SQLExecution> eventFactory,
+            final Wrapper<JdbcStatementCreation> stmtCreationWrapper,
             final Wrapper<SQLExecution> sqlExecutionWrapper) {
-        super(conn, pstmt, eventFactory, sqlExecutionWrapper);
+        super(conn, pstmt, eventFactory, stmtCreationWrapper, sqlExecutionWrapper);
         this.pstmt = pstmt;
         this.sqlExecutionWrapper = sqlExecutionWrapper;
         this.preparedStatementQueryEvent = eventFactory.sqlQueryExecutionEventForPreparedStatement(sql);

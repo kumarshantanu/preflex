@@ -17,21 +17,25 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 
 import preflex.instrument.task.CallTask1;
+import preflex.instrument.task.RunTask1;
 import preflex.instrument.task.Wrapper;
 
-public class StatementWrapper<SQLExecution> implements Statement {
+public class StatementWrapper<JdbcStatementCreation, SQLExecution> implements Statement {
 
     private final Connection conn;
     private final Statement stmt;
-    private final JdbcEventFactory<?, ?, SQLExecution> eventFactory;
+    private final JdbcEventFactory<?, JdbcStatementCreation, SQLExecution> eventFactory;
+    private final Wrapper<JdbcStatementCreation> stmtCreationWrapper;
     private final Wrapper<SQLExecution> sqlExecutionWrapper;
 
     public StatementWrapper(final Connection conn, final Statement stmt,
-            final JdbcEventFactory<?, ?, SQLExecution> eventFactory,
+            final JdbcEventFactory<?, JdbcStatementCreation, SQLExecution> eventFactory,
+            final Wrapper<JdbcStatementCreation> stmtCreationWrapper,
             final Wrapper<SQLExecution> sqlExecutionWrapper) {
         this.conn = conn;
         this.stmt = stmt;
         this.eventFactory = eventFactory;
+        this.stmtCreationWrapper = stmtCreationWrapper;
         this.sqlExecutionWrapper = sqlExecutionWrapper;
     }
 
@@ -77,7 +81,14 @@ public class StatementWrapper<SQLExecution> implements Statement {
 
     @Override
     public void close() throws SQLException {
-        stmt.close();
+        final JdbcStatementCreation event = eventFactory.jdbcStatementCloseEvent();
+        final RunTask1<SQLException> task = new RunTask1<SQLException>() {
+            @Override
+            public void run() throws SQLException {
+                stmt.close();
+            }
+        };
+        stmtCreationWrapper.run(event, task, SQLException.class);
     }
 
     @Override

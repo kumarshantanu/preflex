@@ -13,8 +13,10 @@ package preflex.instrument.jdbc;
 public interface JdbcEventFactory<JdbcConnectionCreation, JdbcStatementCreation, SQLExecution> {
 
     public JdbcConnectionCreation jdbcConnectionCreationEvent();
+    public JdbcConnectionCreation jdbcConnectionCloseEvent();
 
     public JdbcStatementCreation jdbcStatementCreationEvent();
+    public JdbcStatementCreation jdbcStatementCloseEvent();
     public JdbcStatementCreation jdbcPreparedStatementCreationEvent(String sql);
     public JdbcStatementCreation jdbcCallableStatementCreationEvent(String sql);
 

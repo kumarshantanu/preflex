@@ -82,8 +82,8 @@ public class DataSourceWrapper<JdbcConnectionCreation, JdbcStatementCreation, SQ
         final CallTask1<Connection, SQLException> task = new CallTask1<Connection, SQLException>() {
             @Override
             public Connection call() throws SQLException {
-                return new ConnectionWrapper<>(ds.getConnection(), eventFactory, stmtCreationListener,
-                        sqlExecutionListener);
+                return new ConnectionWrapper<>(ds.getConnection(), eventFactory,
+                        connCreationWrapper, stmtCreationListener, sqlExecutionListener);
             }
         };
         return connCreationWrapper.call(event, task, SQLException.class);
@@ -96,7 +96,7 @@ public class DataSourceWrapper<JdbcConnectionCreation, JdbcStatementCreation, SQ
             @Override
             public Connection call() throws SQLException {
                 return new ConnectionWrapper<>(ds.getConnection(username, password), eventFactory,
-                        stmtCreationListener, sqlExecutionListener);
+                        connCreationWrapper, stmtCreationListener, sqlExecutionListener);
             }
         };
         return connCreationWrapper.call(event, task, SQLException.class);

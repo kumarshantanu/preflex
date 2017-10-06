@@ -24,7 +24,9 @@
 (defn make-jdbc-event-factory
   "Make a preflex.instrument.jdbc.JdbcEventFactory instance from given event generator options:
   :connection-create     - (fn []) -> event
+  :connection-close      - (fn []) -> event
   :statement-create      - (fn []) -> event
+  :statement-close       - (fn []) -> event
   :prepared-create       - (fn [sql]) -> event
   :callable-create       - (fn [sql]) -> event
   :statement-sql-execute - (fn [sql]) -> event
@@ -35,8 +37,8 @@
   :prepared-sql-update   - (fn [sql]) -> event"
   ([]
     (make-jdbc-event-factory {}))
-  ([{:keys [connection-create
-            statement-create
+  ([{:keys [connection-create connection-close
+            statement-create  statement-close
             prepared-create
             callable-create
             statement-sql-execute
@@ -46,9 +48,11 @@
             prepared-sql-query
             prepared-sql-update]
      :or {connection-create     (fn []    {:jdbc-event :connection-create})
+          connection-close      (fn []    {:jdbc-event :connection-close})
           statement-create      (fn []    {:jdbc-event :statement-create})
-          prepared-create       (fn [sql] {:jdbc-event :prepared-create :sql sql})
-          callable-create       (fn [sql] {:jdbc-event :callable-create :sql sql})
+          statement-close       (fn []    {:jdbc-event :statement-close})
+          prepared-create       (fn [sql] {:jdbc-event :statement-create :statement :prepared :sql sql})
+          callable-create       (fn [sql] {:jdbc-event :statement-create :statement :callable :sql sql})
           statement-sql-execute (fn [sql] {:jdbc-event :sql-execute :prepared? false :sql sql})
           statement-sql-query   (fn [sql] {:jdbc-event :sql-query   :prepared? false :sql sql})
           statement-sql-update  (fn [sql] {:jdbc-event :sql-update  :prepared? false :sql sql})
@@ -57,12 +61,17 @@
           prepared-sql-update   (fn [sql] {:jdbc-event :sql-update  :prepared? true  :sql sql})}}]
     (reify JdbcEventFactory
       (jdbcConnectionCreationEvent                 [_]     (connection-create))
+      (jdbcConnectionCloseEvent                    [_]     (connection-close))
+
       (jdbcStatementCreationEvent                  [_]     (statement-create))
+      (jdbcStatementCloseEvent                     [_]     (statement-close))
       (jdbcPreparedStatementCreationEvent          [_ sql] (prepared-create       sql))
       (jdbcCallableStatementCreationEvent          [_ sql] (callable-create       sql))
+
       (sqlExecutionEventForStatement               [_ sql] (statement-sql-execute sql))
       (sqlQueryExecutionEventForStatement          [_ sql] (statement-sql-query   sql))
       (sqlUpdateExecutionEventForStatement         [_ sql] (statement-sql-update  sql))
+
       (sqlExecutionEventForPreparedStatement       [_ sql] (prepared-sql-execute  sql))
       (sqlQueryExecutionEventForPreparedStatement  [_ sql] (prepared-sql-query    sql))
       (sqlUpdateExecutionEventForPreparedStatement [_ sql] (prepared-sql-update   sql)))))
@@ -77,12 +86,17 @@
   :stmt-creation-wrapper - a preflex.instrument.task.Wrapper instance or argument to `preflex.task/make-wrapper`
   :sql-execution-wrapper - a preflex.instrument.task.Wrapper instance or argument to `preflex.task/make-wrapper`"
   [^Connection connection {:keys [jdbc-event-factory
+                                  conn-creation-wrapper
                                   stmt-creation-wrapper
                                   sql-execution-wrapper]
                            :or {jdbc-event-factory default-jdbc-event-factory
+                                conn-creation-wrapper Wrapper/IDENTITY
                                 stmt-creation-wrapper Wrapper/IDENTITY
                                 sql-execution-wrapper Wrapper/IDENTITY}}]
   (ConnectionWrapper. connection jdbc-event-factory
+    (if (fn? conn-creation-wrapper)
+      (task/make-wrapper conn-creation-wrapper)
+      conn-creation-wrapper)
     (if (fn? stmt-creation-wrapper)
       (task/make-wrapper stmt-creation-wrapper)
       stmt-creation-wrapper)

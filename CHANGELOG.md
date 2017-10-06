@@ -32,10 +32,12 @@ All notable changes to this project will be documented in this file. This change
     - `preflex.error` to `preflex.resilient.error`
     - `preflex.impl`  to `preflex.resilient.impl`
   - [TODO - BREAKING CHANGE] Make duration arguments as `preflex.type.IDuration` instead of milliseconds
-- Instrumentation
-  - [TODO] Distinguish between SQL query (read), update (write) and stored proc (call) invocations
-  - [TODO] Support connection.close() - Find number of busy connections
-  - [TODO] Support statement.close() - Find number of busy statements
+- JDBC Instrumentation
+  - Applicable to `preflex.instrument.jdbc/instrument-connection` and `preflex.instrument.jdbc/instrument-datasource`
+  - [BREAKING CHANGE] Connection event wrapper (option `:conn-creation-wrapper`) now handles create and close events
+    - Useful to find number of busy connections
+  - [BREAKING CHANGE] Statement event wrapper (option `:stmt-creation-wrapper`) now handles create and close events
+    - Useful to find number of busy statements
 
 
 ## 0.3.0 / 2017-August-28

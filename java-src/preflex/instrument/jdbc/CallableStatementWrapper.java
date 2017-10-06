@@ -32,15 +32,17 @@ import java.util.Map;
 
 import preflex.instrument.task.Wrapper;
 
-public class CallableStatementWrapper<SQLExecution> extends PreparedStatementWrapper<SQLExecution>
+public class CallableStatementWrapper<JdbcStatementCreation, SQLExecution>
+extends PreparedStatementWrapper<JdbcStatementCreation, SQLExecution>
 implements CallableStatement {
 
     private final CallableStatement stmt;
 
     public CallableStatementWrapper(final Connection conn, final CallableStatement stmt, final String sql,
-            final JdbcEventFactory<?, ?, SQLExecution> eventFactory,
+            final JdbcEventFactory<?, JdbcStatementCreation, SQLExecution> eventFactory,
+            final Wrapper<JdbcStatementCreation> stmtCreationWrapper,
             final Wrapper<SQLExecution> sqlExecutionWrapper) {
-        super(conn, stmt, sql, eventFactory, sqlExecutionWrapper);
+        super(conn, stmt, sql, eventFactory, stmtCreationWrapper, sqlExecutionWrapper);
         this.stmt = stmt;
     }
 
