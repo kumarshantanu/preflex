@@ -180,7 +180,7 @@
         yy 100
         vv (volatile! 1488033798157)
         v+ (fn [^long n] (vswap! vv #(+ ^long % n)))
-        fd (r/make-discrete-fault-detector xx yy {:now-finder #(deref vv)})]
+        fd (r/make-discrete-fault-detector xx [yy :millis] {:now-millis-finder #(deref vv)})]
     (testing "Un-initialized"
       (is (not (t/fault? fd)))
       (is (= {:count 0} (deref fd))))

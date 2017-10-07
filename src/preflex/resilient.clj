@@ -251,19 +251,22 @@
 
 
 (defn make-discrete-fault-detector
-  "Create a fault detector based on threshold specified as connected-until-errcount errors in
-  connected-until-duration discrete milliseconds. This follows the X errors in Y discrete duration measurement."
-  ([^long connected-until-errcount ^long connected-until-duration]
+  "Create a fault detector based on threshold specified as connected-until-errcount errors in connected-until-duration
+  (converted to millis) time. This follows the X errors in Y discrete duration measurement."
+  ([^long connected-until-errcount connected-until-duration]
     (make-discrete-fault-detector connected-until-errcount connected-until-duration {}))
-  ([^long connected-until-errcount ^long connected-until-duration {:keys [now-finder]
-                                                                   :or {now-finder u/now-millis}}]
-    (let [fault-counter (m/make-integer-counter :count)
-          start-tstamp  (volatile! (now-finder))
+  ([^long connected-until-errcount connected-until-duration {:keys [now-millis-finder]
+                                                             :or {now-millis-finder u/now-millis}}]
+    (in/expected integer?    "error-count as a positive integer" connected-until-errcount)
+    (in/expected u/duration? "duration object e.g. [10 :millis]" connected-until-duration)
+    (let [conn-until-ms (t/millis connected-until-duration)
+          fault-counter (m/make-integer-counter :count)
+          start-tstamp  (volatile! (now-millis-finder))
           reset-timer   #(locking fault-counter
                            (t/reinit! fault-counter)
-                           (vreset! start-tstamp (now-finder)))
+                           (vreset! start-tstamp (now-millis-finder)))
           refresh-timer #(let [ts @start-tstamp]
-                           (when (>= ^long (now-finder) (unchecked-add ^long ts connected-until-duration))
+                           (when (>= ^long (now-millis-finder) (unchecked-add ^long ts ^long conn-until-ms))
                              (reset-timer)))]
       (reify
         t/IMetricsRecorder   (record! [_] (throw (IllegalArgumentException. "This should never be called")))
