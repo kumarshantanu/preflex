@@ -27,8 +27,8 @@
         (-> (either/do-either (throw (IllegalStateException. "test error")))
           (either/bind #(throw %) identity))) "do-either throws exception")
   (is (= [210] (either/bind-deref 100
-                 (fn [x] (* 2 x))
-                 #(+ 10 %)
+                 (fn [^long x] (* 2 x))
+                 #(+ 10 ^long %)
                  (either/either vector))))
   (is (thrown? IllegalStateException
         (either/bind-deref (either/do-either (throw (IllegalStateException. "test error")))
