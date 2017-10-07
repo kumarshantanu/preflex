@@ -49,8 +49,8 @@
                                                  :as options}]
     (let [thread-pool (doto (->> (ArrayBlockingQueue. (int queue-capacity))
                               (ThreadPoolExecutor. core-thread-count max-thread-count
-                                (t/duration-time keep-alive-duration)
-                                (t/duration-unit keep-alive-duration)))
+                                (t/dur-time keep-alive-duration)
+                                (t/dur-unit keep-alive-duration)))
                         (.allowCoreThreadTimeOut (boolean core-thread-timeout?))
                         (.prestartAllCoreThreads))]
       (im/->BoundedThreadPool (in/as-str thread-pool-name) thread-pool (int queue-capacity))))
@@ -152,7 +152,7 @@
           (on-task-submit ctx)
           (try
             (if task-timeout
-              (try (.get future (t/duration-time task-timeout) (t/duration-unit task-timeout))
+              (try (.get future (t/dur-time task-timeout) (t/dur-unit task-timeout))
                 (catch TimeoutException e
                   (on-task-timeout ctx e)))
               (.get future))

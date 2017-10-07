@@ -46,9 +46,9 @@
 
 
 (defprotocol IDuration
-  (^boolean  duration?     [this] "Return true if valid duration, false otherwise")
-  (^long     duration-time [this] "Time duration")
-  (^TimeUnit duration-unit [this] "Time unit"))
+  (^boolean  duration? [this] "Return true if valid duration, false otherwise")
+  (^long     dur-time  [this] "Return the duration time")
+  (^TimeUnit dur-unit  [this] "Return the duration time unit"))
 
 
 ;; ----- resilience -----

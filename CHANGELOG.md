@@ -44,6 +44,7 @@ All notable changes to this project will be documented in this file. This change
       - [TODO] Change option `:open-duration` from milliseconds to duration
 - [BREAKING CHANGE] Update `preflex.type.IDuration` abstraction
   - Add `duration?` protocol function
+  - Rename protocol functions `duration-time` to `dur-time` and `duration-unit` to `dur-unit`
 - JDBC Instrumentation
   - Applicable to `preflex.instrument.jdbc/instrument-connection` and `preflex.instrument.jdbc/instrument-datasource`
   - [BREAKING CHANGE] Connection event wrapper (option `:conn-creation-wrapper`) now handles create and close events
