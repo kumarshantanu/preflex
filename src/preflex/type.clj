@@ -48,7 +48,14 @@
 (defprotocol IDuration
   (^boolean  duration? [this] "Return true if valid duration, false otherwise")
   (^long     dur-time  [this] "Return the duration time")
-  (^TimeUnit dur-unit  [this] "Return the duration time unit"))
+  (^TimeUnit dur-unit  [this] "Return the duration time unit")
+  (^long     days      [this] "Convert duration to number of days")
+  (^long     hours     [this] "Convert duration to number of hours")
+  (^long     minutes   [this] "Convert duration to number of minutes")
+  (^long     seconds   [this] "Convert duration to number of seconds")
+  (^long     millis    [this] "Convert duration to number of milliseconds")
+  (^long     micros    [this] "Convert duration to number of micros")
+  (^long     nanos     [this] "Convert duration to number of nanoseconds"))
 
 
 ;; ----- resilience -----

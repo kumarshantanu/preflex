@@ -140,6 +140,13 @@
                         (catch IllegalArgumentException e false))))
   (dur-time  [this] (long (first this)))
   (dur-unit  [this] (resolve-time-unit (second this)))
+  (days      [this] (.toDays    (t/dur-unit this) (t/dur-time this)))
+  (hours     [this] (.toHours   (t/dur-unit this) (t/dur-time this)))
+  (minutes   [this] (.toMinutes (t/dur-unit this) (t/dur-time this)))
+  (seconds   [this] (.toSeconds (t/dur-unit this) (t/dur-time this)))
+  (millis    [this] (.toMillis  (t/dur-unit this) (t/dur-time this)))
+  (micros    [this] (.toMicros  (t/dur-unit this) (t/dur-time this)))
+  (nanos     [this] (.toNanos   (t/dur-unit this) (t/dur-time this)))
   Map
   (duration? [this] (if-let [t (or (get this :time) (get this "time"))]
                       (if-let [u (or (get this :unit) (get this "unit"))]
@@ -151,6 +158,13 @@
   (dur-time  [this] (long (or (get this :time) (get this "time"))))
   (dur-unit  [this] (resolve-time-unit
                       (or (get this :unit) (get this "unit"))))
+  (days      [this] (.toDays    (t/dur-unit this) (t/dur-time this)))
+  (hours     [this] (.toHours   (t/dur-unit this) (t/dur-time this)))
+  (minutes   [this] (.toMinutes (t/dur-unit this) (t/dur-time this)))
+  (seconds   [this] (.toSeconds (t/dur-unit this) (t/dur-time this)))
+  (millis    [this] (.toMillis  (t/dur-unit this) (t/dur-time this)))
+  (micros    [this] (.toMicros  (t/dur-unit this) (t/dur-time this)))
+  (nanos     [this] (.toNanos   (t/dur-unit this) (t/dur-time this)))
   String
   (duration? [this] (and
                       (try (t/dur-time this) true (catch NumberFormatException    e false))
@@ -158,7 +172,14 @@
   (dur-time  [this] (if-let [[_ strnum unit] (re-matches #"([0-9]+)([a-zA-Z]+)" this)]
                       (Long/parseLong strnum)))
   (dur-unit  [this] (if-let [[_ strnum unit] (re-matches #"([0-9]+)([a-zA-Z]+)" this)]
-                      (resolve-time-unit unit))))
+                      (resolve-time-unit unit)))
+  (days      [this] (.toDays    (t/dur-unit this) (t/dur-time this)))
+  (hours     [this] (.toHours   (t/dur-unit this) (t/dur-time this)))
+  (minutes   [this] (.toMinutes (t/dur-unit this) (t/dur-time this)))
+  (seconds   [this] (.toSeconds (t/dur-unit this) (t/dur-time this)))
+  (millis    [this] (.toMillis  (t/dur-unit this) (t/dur-time this)))
+  (micros    [this] (.toMicros  (t/dur-unit this) (t/dur-time this)))
+  (nanos     [this] (.toNanos   (t/dur-unit this) (t/dur-time this))))
 
 
 (defn make-duration
@@ -169,7 +190,14 @@
     (reify t/IDuration
       (duration? [_] true)
       (dur-time  [_] time)
-      (dur-unit  [_] unit))))
+      (dur-unit  [_] unit)
+      (days      [_] (.toDays    unit time))
+      (hours     [_] (.toHours   unit time))
+      (minutes   [_] (.toMinutes unit time))
+      (seconds   [_] (.toSeconds unit time))
+      (millis    [_] (.toMillis  unit time))
+      (micros    [_] (.toMicros  unit time))
+      (nanos     [_] (.toNanos   unit time)))))
 
 
 (defn parse-duration
