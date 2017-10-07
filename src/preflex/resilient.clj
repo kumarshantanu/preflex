@@ -288,29 +288,34 @@
 
 (defn make-rolling-fault-detector
   "Create a protocols-instance that detects faults based on threshold specified as connected-until-errcount errors in
-  connected-until-duration. This follows the X errors in Y duration measurement.
+  connected-until-duration (converted to millis) time. This follows the X errors in Y duration measurement.
   See also: preflex.metrics/make-rolling-integer-counter"
-  ([^long connected-until-errcount ^long connected-until-duration]
+  ([^long connected-until-errcount connected-until-duration]
     (make-rolling-fault-detector connected-until-errcount connected-until-duration {}))
-  ([^long connected-until-errcount ^long connected-until-duration {:keys [^long bucket-interval]
-                                                                   :or {bucket-interval 1000}
-                                                                   :as options}]
-    (when (or (not= 0 (rem connected-until-duration bucket-interval))
-            (<= (quot connected-until-duration bucket-interval) 0))
-      (in/expected "connected-until-duration to be a multiple of bucket-interval"
-        {:connected-until connected-until-duration
-         :bucket-interval bucket-interval}))
-    (let [bucket-count  (quot connected-until-duration bucket-interval)
-          fault-counter (m/make-rolling-integer-counter :count (inc bucket-count)
-                          (merge options {:bucket-interval bucket-interval}))]
-      (reify
-        t/IMetricsRecorder   (record! [_] (throw (IllegalArgumentException. "This should never be called")))
-                             (record! [_ status?] (when-not status?
-                                                    (t/record! fault-counter)))
-        t/IReinitializable   (reinit! [_] (t/reinit! fault-counter))
-        clojure.lang.Counted (count   [_] (count fault-counter))
-        clojure.lang.IDeref  (deref   [_] (deref fault-counter))
-        t/IFaultDetector     (fault?  [_] (>= (count fault-counter) connected-until-errcount))))))
+  ([^long connected-until-errcount connected-until-duration {:keys [bucket-interval]
+                                                             :or {bucket-interval [1000 :millis]}
+                                                             :as options}]
+    (in/expected integer?    "error-count as a positive integer" connected-until-errcount)
+    (in/expected u/duration? "duration object e.g. [10 :millis]" connected-until-duration)
+    (in/expected u/duration? "duration object e.g. [10 :millis]" bucket-interval)
+    (let [connected-until-ms (t/millis connected-until-duration)
+          bucket-interval-ms (t/millis bucket-interval)]
+      (when (or (not= 0 (rem ^long connected-until-ms ^long bucket-interval-ms))
+              (<= (quot ^long connected-until-ms ^long bucket-interval-ms) 0))
+        (in/expected "connected-until-duration to be a multiple of bucket-interval"
+          {:connected-until connected-until-duration
+           :bucket-interval bucket-interval}))
+      (let [bucket-count  (quot ^long connected-until-ms ^long bucket-interval-ms)
+            fault-counter (m/make-rolling-integer-counter :count (inc bucket-count)
+                            (merge options {:bucket-interval bucket-interval-ms}))]
+        (reify
+          t/IMetricsRecorder   (record! [_] (throw (IllegalArgumentException. "This should never be called")))
+                               (record! [_ status?] (when-not status?
+                                                      (t/record! fault-counter)))
+          t/IReinitializable   (reinit! [_] (t/reinit! fault-counter))
+          clojure.lang.Counted (count   [_] (count fault-counter))
+          clojure.lang.IDeref  (deref   [_] (deref fault-counter))
+          t/IFaultDetector     (fault?  [_] (>= (count fault-counter) connected-until-errcount)))))))
 
 
 (defn make-half-open-retry-resolver

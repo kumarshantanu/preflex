@@ -211,9 +211,9 @@
         yy 100
         vv (volatile! 1488033798157)
         v+ (fn [^long n] (vswap! vv #(+ ^long % n)))
-        fd (r/make-rolling-fault-detector xx yy {:bucket-interval 100
-                                                 :deref-head? true
-                                                 :event-id-fn #(deref vv)})]
+        fd (r/make-rolling-fault-detector xx [yy :millis] {:bucket-interval [100 :millis]
+                                                           :deref-head? true
+                                                           :event-id-fn #(deref vv)})]
     (testing "Un-initialized"
       (is (not (t/fault? fd)))
       (is (= {:count 0} (deref fd))))
@@ -305,8 +305,8 @@
  (let [bi 100  ; bucket interval in millis
        fd (r/make-rolling-fault-detector
             10  ; X errors
-            1000 ; in Y milliseconds
-            {:bucket-interval bi})
+            [1000 :millis] ; in Y milliseconds
+            {:bucket-interval [bi :millis]})
        rr (r/make-half-open-retry-resolver 100)
        vc (volatile! {:trip-count 0
                       :connect-count 0})

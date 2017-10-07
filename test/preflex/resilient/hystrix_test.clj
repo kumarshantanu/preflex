@@ -20,7 +20,7 @@
                 semaphore-options
                 metrics-collectors]} collectors
         reporter   (hystrix/make-metrics-reporter metrics-collectors)
-        fd (r/make-rolling-fault-detector 20 10000)
+        fd (r/make-rolling-fault-detector 20 [10000 :millis])
         rr (r/make-half-open-retry-resolver 5)
         o-reporter (hystrix/make-metrics-reporter (:metrics-collectors collectors)
                      {:circuit-breaker     (r/make-circuit-breaker fd rr circuit-breaker-options)

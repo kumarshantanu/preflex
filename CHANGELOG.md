@@ -36,8 +36,8 @@ All notable changes to this project will be documented in this file. This change
       - Change argument `connected-until-duration` to duration instead of milliseconds
       - Rename option `:now-finder` to `:now-millis-finder` - time calculation in milliseconds
     - In function `preflex.resilient/make-rolling-fault-detector`
-      - [TODO] Change argument `connected-until-duration` to duration instead of milliseconds
-      - [TODO] Change option `:bucket-interval` from milliseconds to duration
+      - Change argument `connected-until-duration` from milliseconds to duration
+      - Change option `:bucket-interval` from milliseconds to duration
     - In function `preflex.resilient/make-half-open-retry-resolver`
       - [TODO] Change argument `half-open-duration` from milliseconds to duration
       - [TODO] Drop option `:now-finder` in favor of milliseconds
