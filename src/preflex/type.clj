@@ -46,6 +46,7 @@
 
 
 (defprotocol IDuration
+  (^boolean  duration?     [this] "Return true if valid duration, false otherwise")
   (^long     duration-time [this] "Time duration")
   (^TimeUnit duration-unit [this] "Time unit"))
 

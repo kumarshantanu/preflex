@@ -31,7 +31,19 @@ All notable changes to this project will be documented in this file. This change
     - `preflex.core`  to `preflex.resilient`
     - `preflex.error` to `preflex.resilient.error`
     - `preflex.impl`  to `preflex.resilient.impl`
-  - [TODO - BREAKING CHANGE] Make duration arguments as `preflex.type.IDuration` instead of milliseconds
+  - [BREAKING CHANGE] Make duration arguments as `preflex.type.IDuration` instead of milliseconds
+    - In function `preflex.resilient/make-discrete-fault-detector`
+      - [TODO] Change argument `connected-until-duration` to duration instead of milliseconds
+      - [TODO] Drop option `:now-finder` in favor of milliseconds
+    - In function `preflex.resilient/make-rolling-fault-detector`
+      - [TODO] Change argument `connected-until-duration` to duration instead of milliseconds
+      - [TODO] Change option `:bucket-interval` from milliseconds to duration
+    - In function `preflex.resilient/make-half-open-retry-resolver`
+      - [TODO] Change argument `half-open-duration` from milliseconds to duration
+      - [TODO] Drop option `:now-finder` in favor of milliseconds
+      - [TODO] Change option `:open-duration` from milliseconds to duration
+- [BREAKING CHANGE] Update `preflex.type.IDuration` abstraction
+  - Add `duration?` protocol function
 - JDBC Instrumentation
   - Applicable to `preflex.instrument.jdbc/instrument-connection` and `preflex.instrument.jdbc/instrument-datasource`
   - [BREAKING CHANGE] Connection event wrapper (option `:conn-creation-wrapper`) now handles create and close events

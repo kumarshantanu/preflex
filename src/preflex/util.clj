@@ -134,13 +134,29 @@
 
 (extend-protocol t/IDuration
   List
+  (duration?     [this] (and (= 2 (count this))
+                          (integer? (first this))
+                          (try (resolve-time-unit (second this)) true
+                            (catch IllegalArgumentException e false))))
   (duration-time [this] (long (first this)))
   (duration-unit [this] (resolve-time-unit (second this)))
   Map
+  (duration?     [this] (if-let [t (or (get this :time) (get this "time"))]
+                          (if-let [u (or (get this :unit) (get this "unit"))]
+                            (and (integer? t)
+                              (try (resolve-time-unit u) true
+                                (catch IllegalArgumentException e false)))
+                            false)
+                          false))
   (duration-time [this] (long (or (get this :time) (get this "time"))))
   (duration-unit [this] (resolve-time-unit
                           (or (get this :unit) (get this "unit"))))
   String
+  (duration?     [this] (and
+                          (try (t/duration-time this) true
+                            (catch NumberFormatException e false))
+                          (try (t/duration-unit this) true
+                            (catch IllegalArgumentException e false))))
   (duration-time [this] (if-let [[_ strnum unit] (re-matches #"([0-9]+)([a-zA-Z]+)" this)]
                           (Long/parseLong strnum)))
   (duration-unit [this] (if-let [[_ strnum unit] (re-matches #"([0-9]+)([a-zA-Z]+)" this)]
@@ -153,6 +169,7 @@
   (let [time (long time)
         unit (resolve-time-unit unit)]
     (reify t/IDuration
+      (duration?     [_] true)
       (duration-time [_] time)
       (duration-unit [_] unit))))
 
