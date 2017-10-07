@@ -110,6 +110,13 @@
 ;; ----- Duration handling -----
 
 
+(defn duration?
+  "Return true if argument is a valid duration, false otherwise."
+  [x]
+  (and (satisfies? t/IDuration x)
+    (t/duration? x)))
+
+
 (defn resolve-time-unit
   "Resolve given time unit as java.util.concurrent.TimeUnit instance."
   ^TimeUnit [unit]
