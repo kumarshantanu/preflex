@@ -66,10 +66,10 @@ A circuit breaker detects repeated faults and cuts off execution in that context
 
 ```clojure
 ;; detect failure when there are total 20 errors in last 10 seconds
-(def fd (r/make-rolling-fault-detector 20 10000))
+(def fd (r/make-rolling-fault-detector 20 [10 :seconds]))
 
 ;; allow calls only once every 5 seconds
-(def rr (r/make-half-open-retry-resolver 5))
+(def rr (r/make-half-open-retry-resolver [5 :seconds]))
 
 ;; create the circuit breaker based on the fault detector and the retry resolver
 (def cb (r/make-circuit-breaker fd rr))
