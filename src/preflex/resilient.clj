@@ -321,27 +321,31 @@
 (defn make-half-open-retry-resolver
   "Make a retry-resolver that allows specified number of retries per every half-open window. Retries happen
   consecutively at the beginning of every half-open window. An 'open' window precedes all half-open windows.
+  Durations are converted to millis for time calculation.
   Options:
-    :open-millis (int, default: same as half-open-millis) 'open' period preceding the half-open periods
-    :retry-times (int, default: 1) max number of times to retry in every half-open window"
-  ([^long half-open-duration]
+    :now-millis-finder (fn []) -> long  function that returns current time in millis
+    :open-duration (duration, default: half-open-duration) 'open' period preceding the half-open periods
+    :retry-times   (int, default: 1) max number of times to retry in every half-open window"
+  ([half-open-duration]
     (make-half-open-retry-resolver half-open-duration {}))
-  ([^long half-open-duration {:keys [now-finder
-                                     open-duration
-                                     retry-times]
-                            :or {now-finder    u/now-millis
-                                 open-duration half-open-duration
-                                 retry-times   1}
-                            :as options}]
-    (in/expected integer? "arg half-open-duration to be an integer" half-open-duration)
-    (in/expected integer? "option :open-duration to be an integer" open-duration)
+  ([half-open-duration {:keys [now-millis-finder
+                               open-duration
+                               retry-times]
+                      :or {now-millis-finder u/now-millis
+                           open-duration     half-open-duration
+                           retry-times       1}
+                      :as options}]
+    (in/expected u/duration? "arg half-open-duration to be a duration e.g. [10 :millis]" half-open-duration)
+    (in/expected u/duration? "option :open-duration to be a duration e.g. [10 :millis]" open-duration)
     (in/expected #(and (integer? %) (pos? ^long %)) "option :retry-times to be a positive integer" retry-times)
-    (let [init-fn #(let [ts (now-finder)] (im/->RetryState
-                                            ts    ; :retry-init-ts
-                                            false ; :open-elapsed?
-                                            ts    ; :last-retry-ts
-                                            0     ; :retry-counter
-                                            ))
+    (let [half-open-millis (t/millis half-open-duration)
+          open-millis      (t/millis open-duration)
+          init-fn #(let [ts (now-millis-finder)] (im/->RetryState
+                                                   ts    ; :retry-init-ts
+                                                   false ; :open-elapsed?
+                                                   ts    ; :last-retry-ts
+                                                   0     ; :retry-counter
+                                                   ))
           v-state (volatile! (init-fn))
           ^Semaphore
           reinit-lock (Semaphore. 1 false)  ; binary semaphore
@@ -365,10 +369,10 @@
                                            (try
                                              (locking v-state  ; lock against re-init (see `reinit!`)
                                                (let [^RetryState state @v-state
-                                                     ts (now-finder)]
+                                                     ts (now-millis-finder)]
                                                  (if (:open-elapsed? state)
                                                    ;; half-open window may have elapsed, so test and shift to next one
-                                                   (if (>= (- ^long ts (.-last-retry-ts state)) half-open-duration)
+                                                   (if (>= (- ^long ts (.-last-retry-ts state)) half-open-millis)
                                                      (h-shift ts)  ; shift to the next half-open window and return true
                                                      (let [rc (.-retry-counter state)]
                                                        (if (< rc ^long retry-times)
@@ -378,7 +382,7 @@
                                                            true)
                                                          false)))
                                                    ;; open period is not known to be elapsed, so test it
-                                                   (if (>= (- ^long ts (.-retry-init-ts state)) ^long open-duration)
+                                                   (if (>= (- ^long ts (.-retry-init-ts state)) ^long open-millis)
                                                      (h-shift ts)  ; shift to half-open and return true
                                                      false))))
                                              (finally

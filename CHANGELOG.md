@@ -39,9 +39,9 @@ All notable changes to this project will be documented in this file. This change
       - Change argument `connected-until-duration` from milliseconds to duration
       - Change option `:bucket-interval` from milliseconds to duration
     - In function `preflex.resilient/make-half-open-retry-resolver`
-      - [TODO] Change argument `half-open-duration` from milliseconds to duration
-      - [TODO] Drop option `:now-finder` in favor of milliseconds
-      - [TODO] Change option `:open-duration` from milliseconds to duration
+      - Change argument `half-open-duration` from milliseconds to duration
+      - Rename option `:now-finder` to `:now-millis-finder` - time calculation in milliseconds
+      - Change option `:open-duration` from milliseconds to duration
 - [BREAKING CHANGE] Update `preflex.type.IDuration` abstraction
   - Add `duration?` protocol function
   - Rename protocol functions `duration-time` to `dur-time` and `duration-unit` to `dur-unit`

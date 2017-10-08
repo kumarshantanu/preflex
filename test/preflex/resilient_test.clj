@@ -242,8 +242,8 @@
   (let [hh 100
         vv (volatile! 1488033798157)
         v+ (fn [^long n] (vswap! vv #(+ ^long % n)))
-        rr (r/make-half-open-retry-resolver hh {:now-finder #(deref vv)
-                                                :open-duration (* 2 hh)})]
+        rr (r/make-half-open-retry-resolver [hh :millis] {:now-millis-finder #(deref vv)
+                                                          :open-duration [(* 2 hh) :millis]})]
     (testing "Un-initialized"
       (is (not (t/retry? rr))))
     (testing "Incomplete elapsing of open window"
@@ -307,7 +307,7 @@
             10  ; X errors
             [1000 :millis] ; in Y milliseconds
             {:bucket-interval [bi :millis]})
-       rr (r/make-half-open-retry-resolver 100)
+       rr (r/make-half-open-retry-resolver [100 :millis])
        vc (volatile! {:trip-count 0
                       :connect-count 0})
        cb (r/make-circuit-breaker
