@@ -28,7 +28,7 @@ Preflex provides the following facilities:
 
 ## Usage
 
-Leiningen coordinates: `[preflex "0.4.0-alpha1"]`
+Leiningen coordinates: `[preflex "0.4.0-alpha2"]`
 
 See [documentation](doc/intro.md)
 

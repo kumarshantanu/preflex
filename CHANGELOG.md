@@ -11,7 +11,7 @@ All notable changes to this project will be documented in this file. This change
   - Throttle
 
 
-## [WIP] 0.4.0-alpha2 / 2017-October-??
+## 0.4.0-alpha2 / 2017-October-09
 ### Added
 - Add 'either' fault-handling abstraction in `preflex.either` ns (adaptation of the either-monad)
   - Helper fns `success`, `failure`
@@ -24,6 +24,7 @@ All notable changes to this project will be documented in this file. This change
   - Metrics reporters for emitting metrics data
   - [TODO] Tests for collecting and reporting metrics
   - [TODO] Tests for thread-pool metrics
+  - [TODO] Tests for emitting metrics and visualization with Hystrix-dashboard
 
 ### Changed
 - Resilience primitives
