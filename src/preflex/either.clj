@@ -14,9 +14,10 @@
     https://www.schoolofhaskell.com/school/starting-with-haskell/basics-of-haskell/10_Error_Handling
     https://youtu.be/3y7xzH8jB8A?t=1390"
   (:require
-    [preflex.internal :as i])
+    [preflex.internal :as i]
+    [preflex.type     :as t])
   (:import
-    [clojure.lang Cons]))
+    [clojure.lang Cons IFn]))
 
 
 (defrecord Failure [result])
@@ -65,7 +66,36 @@
   See:
     do-either"
   [f]
-  (fn [& args] (do-either (apply f args))))
+  (reify
+    clojure.lang.IFn
+    (applyTo [_ args] (do-either (apply f args)))
+    (invoke  [_]                                           (do-either (f)))
+    (invoke  [_ a]                                         (do-either (f a)))
+    (invoke  [_ a b]                                       (do-either (f a b)))
+    (invoke  [_ a b c]                                     (do-either (f a b c)))
+    (invoke  [_ a b c d]                                   (do-either (f a b c d)))
+    (invoke  [_ a b c d e]                                 (do-either (f a b c d e)))
+    (invoke  [_ a b c d e f]                               (do-either (f a b c d e f)))
+    (invoke  [_ a b c d e f g]                             (do-either (f a b c d e f g)))
+    (invoke  [_ a b c d e f g h]                           (do-either (f a b c d e f g h)))
+    (invoke  [_ a b c d e f g h i]                         (do-either (f a b c d e f g h i)))
+    (invoke  [_ a b c d e f g h i j]                       (do-either (f a b c d e f g h i j)))
+    (invoke  [_ a b c d e f g h i j k]                     (do-either (f a b c d e f g h i j k)))
+    (invoke  [_ a b c d e f g h i j k l]                   (do-either (f a b c d e f g h i j k l)))
+    (invoke  [_ a b c d e f g h i j k l m]                 (do-either (f a b c d e f g h i j k l m)))
+    (invoke  [_ a b c d e f g h i j k l m n]               (do-either (f a b c d e f g h i j k l m n)))
+    (invoke  [_ a b c d e f g h i j k l m n o]             (do-either (f a b c d e f g h i j k l m n o)))
+    (invoke  [_ a b c d e f g h i j k l m n o p]           (do-either (f a b c d e f g h i j k l m n o p)))
+    (invoke  [_ a b c d e f g h i j k l m n o p q]         (do-either (f a b c d e f g h i j k l m n o p q)))
+    (invoke  [_ a b c d e f g h i j k l m n o p q r]       (do-either (f a b c d e f g h i j k l m n o p q r)))
+    (invoke  [_ a b c d e f g h i j k l m n o p q r s]     (do-either (f a b c d e f g h i j k l m n o p q r s)))
+    (invoke  [_ a b c d e f g h i j k l m n o p q r s t]   (do-either (f a b c d e f g h i j k l m n o p q r s t)))
+    (invoke  [_ a b c d e f g h i j k l m n o p q r s t u] (do-either (f a b c d e f g h i j k l m n o p q r s t u)))
+    t/Invokable
+    (apply-noarg     [_]        (do-either (f)))
+    (apply-arguments [_ args]   (do-either (apply f args)))
+    (success-result? [_ result] (not (instance? Failure result)))
+    (success-error?  [_ error]  false)))
 
 
 (defn bind

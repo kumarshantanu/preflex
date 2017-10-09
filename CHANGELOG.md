@@ -16,7 +16,7 @@ All notable changes to this project will be documented in this file. This change
 - Add 'either' fault-handling abstraction in `preflex.either` ns (adaptation of the either-monad)
   - Helper fns `success`, `failure`
   - The `bind` (and `bind-deref`) dispatcher
-  - Helpers `do-either`, `deref-either`
+  - Helpers `do-either`, `deref-either`, `either`
 - Add Hystrix-metrics emulation helpers
   - Command metrics
   - Thread pool metrics
