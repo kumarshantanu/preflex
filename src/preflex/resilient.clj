@@ -372,7 +372,7 @@
                                                      ts (now-millis-finder)]
                                                  (if (:open-elapsed? state)
                                                    ;; half-open window may have elapsed, so test and shift to next one
-                                                   (if (>= (- ^long ts (.-last-retry-ts state)) half-open-millis)
+                                                   (if (>= (- ^long ts (.-last-retry-ts state)) ^long half-open-millis)
                                                      (h-shift ts)  ; shift to the next half-open window and return true
                                                      (let [rc (.-retry-counter state)]
                                                        (if (< rc ^long retry-times)
