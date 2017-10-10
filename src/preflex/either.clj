@@ -62,38 +62,38 @@
 
 
 (defn either
-  "Wrap given function f such that it returns an either-result based on the result of invoking f.
+  "Wrap given function such that it returns an either-result based on the result of invoking it.
   See:
     do-either"
-  [f]
+  [ff]
   (reify
     clojure.lang.IFn
-    (applyTo [_ args] (do-either (apply f args)))
-    (invoke  [_]                                           (do-either (f)))
-    (invoke  [_ a]                                         (do-either (f a)))
-    (invoke  [_ a b]                                       (do-either (f a b)))
-    (invoke  [_ a b c]                                     (do-either (f a b c)))
-    (invoke  [_ a b c d]                                   (do-either (f a b c d)))
-    (invoke  [_ a b c d e]                                 (do-either (f a b c d e)))
-    (invoke  [_ a b c d e f]                               (do-either (f a b c d e f)))
-    (invoke  [_ a b c d e f g]                             (do-either (f a b c d e f g)))
-    (invoke  [_ a b c d e f g h]                           (do-either (f a b c d e f g h)))
-    (invoke  [_ a b c d e f g h i]                         (do-either (f a b c d e f g h i)))
-    (invoke  [_ a b c d e f g h i j]                       (do-either (f a b c d e f g h i j)))
-    (invoke  [_ a b c d e f g h i j k]                     (do-either (f a b c d e f g h i j k)))
-    (invoke  [_ a b c d e f g h i j k l]                   (do-either (f a b c d e f g h i j k l)))
-    (invoke  [_ a b c d e f g h i j k l m]                 (do-either (f a b c d e f g h i j k l m)))
-    (invoke  [_ a b c d e f g h i j k l m n]               (do-either (f a b c d e f g h i j k l m n)))
-    (invoke  [_ a b c d e f g h i j k l m n o]             (do-either (f a b c d e f g h i j k l m n o)))
-    (invoke  [_ a b c d e f g h i j k l m n o p]           (do-either (f a b c d e f g h i j k l m n o p)))
-    (invoke  [_ a b c d e f g h i j k l m n o p q]         (do-either (f a b c d e f g h i j k l m n o p q)))
-    (invoke  [_ a b c d e f g h i j k l m n o p q r]       (do-either (f a b c d e f g h i j k l m n o p q r)))
-    (invoke  [_ a b c d e f g h i j k l m n o p q r s]     (do-either (f a b c d e f g h i j k l m n o p q r s)))
-    (invoke  [_ a b c d e f g h i j k l m n o p q r s t]   (do-either (f a b c d e f g h i j k l m n o p q r s t)))
-    (invoke  [_ a b c d e f g h i j k l m n o p q r s t u] (do-either (f a b c d e f g h i j k l m n o p q r s t u)))
+    (applyTo [_ args] (do-either (apply ff args)))
+    (invoke  [_]                                           (do-either (ff)))
+    (invoke  [_ a]                                         (do-either (ff a)))
+    (invoke  [_ a b]                                       (do-either (ff a b)))
+    (invoke  [_ a b c]                                     (do-either (ff a b c)))
+    (invoke  [_ a b c d]                                   (do-either (ff a b c d)))
+    (invoke  [_ a b c d e]                                 (do-either (ff a b c d e)))
+    (invoke  [_ a b c d e f]                               (do-either (ff a b c d e f)))
+    (invoke  [_ a b c d e f g]                             (do-either (ff a b c d e f g)))
+    (invoke  [_ a b c d e f g h]                           (do-either (ff a b c d e f g h)))
+    (invoke  [_ a b c d e f g h i]                         (do-either (ff a b c d e f g h i)))
+    (invoke  [_ a b c d e f g h i j]                       (do-either (ff a b c d e f g h i j)))
+    (invoke  [_ a b c d e f g h i j k]                     (do-either (ff a b c d e f g h i j k)))
+    (invoke  [_ a b c d e f g h i j k l]                   (do-either (ff a b c d e f g h i j k l)))
+    (invoke  [_ a b c d e f g h i j k l m]                 (do-either (ff a b c d e f g h i j k l m)))
+    (invoke  [_ a b c d e f g h i j k l m n]               (do-either (ff a b c d e f g h i j k l m n)))
+    (invoke  [_ a b c d e f g h i j k l m n o]             (do-either (ff a b c d e f g h i j k l m n o)))
+    (invoke  [_ a b c d e f g h i j k l m n o p]           (do-either (ff a b c d e f g h i j k l m n o p)))
+    (invoke  [_ a b c d e f g h i j k l m n o p q]         (do-either (ff a b c d e f g h i j k l m n o p q)))
+    (invoke  [_ a b c d e f g h i j k l m n o p q r]       (do-either (ff a b c d e f g h i j k l m n o p q r)))
+    (invoke  [_ a b c d e f g h i j k l m n o p q r s]     (do-either (ff a b c d e f g h i j k l m n o p q r s)))
+    (invoke  [_ a b c d e f g h i j k l m n o p q r s t]   (do-either (ff a b c d e f g h i j k l m n o p q r s t)))
+    (invoke  [_ a b c d e f g h i j k l m n o p q r s t u] (do-either (ff a b c d e f g h i j k l m n o p q r s t u)))
     t/Invokable
-    (apply-noarg     [_]        (do-either (f)))
-    (apply-arguments [_ args]   (do-either (apply f args)))
+    (apply-noarg     [_]        (do-either (ff)))
+    (apply-arguments [_ args]   (do-either (apply ff args)))
     (success-result? [_ result] (not (instance? Failure result)))
     (success-error?  [_ error]  false)))
 
