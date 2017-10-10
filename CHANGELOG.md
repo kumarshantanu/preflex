@@ -11,7 +11,7 @@ All notable changes to this project will be documented in this file. This change
   - Throttle
 
 
-## 0.4.0-alpha2 / 2017-October-09
+## [WIP] 0.4.0-alpha3 / 2017-October-??
 ### Added
 - Add 'either' fault-handling abstraction in `preflex.either` ns (adaptation of the either-monad)
   - Helper fns `success`, `failure`
