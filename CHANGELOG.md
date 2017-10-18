@@ -9,6 +9,9 @@ All notable changes to this project will be documented in this file. This change
 - Resilience primitives
   - Retry
   - Throttle
+- Instrumentation
+  - http://micrometer.io/
+  - Out of the box Class loader, Garbage collection, processor utilization, thread pools instrumentation
 
 
 ## [WIP] 0.4.0-alpha3 / 2017-October-??
@@ -22,7 +25,8 @@ All notable changes to this project will be documented in this file. This change
   - Thread pool metrics
   - Metrics collectors for use with resilience primitives
   - Metrics reporters for emitting metrics data
-  - [TODO] Tests for collecting and reporting metrics
+  - Tests for collecting and reporting metrics
+  - [TODO] Tests for command metrics
   - [TODO] Tests for thread-pool metrics
   - [TODO] Tests for emitting metrics and visualization with Hystrix-dashboard
 

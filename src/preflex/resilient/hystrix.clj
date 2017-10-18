@@ -118,35 +118,44 @@
   ([]
     (make-default-collectors {}))
   ([{:keys [bucket-count
+            now-finder
             percentiles]
      :or {bucket-count 11
+          now-finder   u/now-millis
           percentiles  hystrix-latency-percentiles}}]
     (let [;; success-failure tracking
           success-failure     (m/make-union-collector
                                 [(m/make-boolean-counter :cumulative-count-success :cumulative-count-failure)
                                  (m/make-rolling-boolean-counter :rolling-count-success :rolling-count-failure
-                                   bucket-count)])
+                                   bucket-count {:event-id-fn now-finder})])
           exceptions-thrown   (m/make-union-collector
                                 [(m/make-integer-counter :cumulative-count-exceptions)
-                                 (m/make-rolling-integer-counter :rolling-count-exceptions bucket-count)])
+                                 (m/make-rolling-integer-counter :rolling-count-exceptions bucket-count
+                                   {:event-id-fn now-finder})])
           ;; semaphores
           semaphore-reject    (m/make-union-collector
                                 [(m/make-integer-counter :cumulative-count-semaphore-rejected)
-                                 (m/make-rolling-integer-counter :rolling-count-semaphore-rejected bucket-count)])
+                                 (m/make-rolling-integer-counter :rolling-count-semaphore-rejected bucket-count
+                                   {:event-id-fn now-finder})])
           ;; thread-pool
           thread-pool-reject  (m/make-union-collector
                                 [(m/make-integer-counter :cumulative-count-thread-pool-rejected)
-                                 (m/make-rolling-integer-counter :rolling-count-thread-pool-rejected bucket-count)])
+                                 (m/make-rolling-integer-counter :rolling-count-thread-pool-rejected bucket-count
+                                   {:event-id-fn now-finder})])
           thread-pool-timeout (m/make-union-collector
                                 [(m/make-integer-counter :cumulative-count-timeout)
-                                 (m/make-rolling-integer-counter :rolling-count-timeout bucket-count)])
+                                 (m/make-rolling-integer-counter :rolling-count-timeout bucket-count
+                                   {:event-id-fn now-finder})])
           ;; circuit-breaker
           short-circuited     (m/make-union-collector
                                 [(m/make-integer-counter :cumulative-count-short-circuited)
-                                 (m/make-rolling-integer-counter :rolling-count-short-circuited bucket-count)])
+                                 (m/make-rolling-integer-counter :rolling-count-short-circuited bucket-count
+                                   {:event-id-fn now-finder})])
           ;; latency tracking
-          execute-latency     (m/make-rolling-percentile-collector :execute-latency percentiles bucket-count)
-          total-latency       (m/make-rolling-percentile-collector :total-latency   percentiles bucket-count)]
+          execute-latency     (m/make-rolling-percentile-collector :execute-latency percentiles bucket-count
+                                {:event-id-fn now-finder})
+          total-latency       (m/make-rolling-percentile-collector :total-latency   percentiles bucket-count
+                                {:event-id-fn now-finder})]
       {:metrics-collectors {:success-failure     success-failure
                             :exceptions-thrown   exceptions-thrown
                             :semaphore-reject    semaphore-reject
@@ -155,8 +164,8 @@
                             :short-circuited     short-circuited
                             :execute-latency     execute-latency
                             :total-latency       total-latency}
-       :latency-tracker         execute-latency
-       :success-failure-tracker success-failure
+       :latency-tracker         (fn [status? ^long latency] (type/record! execute-latency latency))
+       :success-failure-tracker (fn [status?] (type/record! success-failure status?))
        :success-failure-options {:post-error          (fn [context ex] (type/record! exceptions-thrown))}
        :semaphore-options       {:on-semaphore-reject (fn [context]    (type/record! semaphore-reject))}
        :thread-pool-options     {:on-task-reject      (fn [context ex] (type/record! thread-pool-reject))
