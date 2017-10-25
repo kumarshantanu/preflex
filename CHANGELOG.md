@@ -20,6 +20,8 @@ All notable changes to this project will be documented in this file. This change
   - Helper fns `success`, `failure`
   - The `bind` (and `bind-deref`) dispatcher
   - Helpers `do-either`, `deref-either`, `either`
+  - [TODO] `bind->` and `bind-as->`
+  - [TODO] Remove `bind-deref`
 - Add Hystrix-metrics emulation helpers
   - Command metrics
   - Thread pool metrics
