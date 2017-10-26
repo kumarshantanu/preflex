@@ -127,6 +127,77 @@
       (success-f either-result))))
 
 
+(defn- bind-expr
+  "Given an expander fn (fn [form]) and a short bind-form, rewrite it as a bind expression.
+  Internal function for use by bind->, bind->> and bind-as-> only."
+  [f form]
+  (if (vector? form)
+    (if (= 2 (count form))
+      `(bind ~@(map f form))
+      (throw (ex-info (str "Expected vector form to have two elements, but found " form) {})))
+    `(bind ~(f form))))
+
+
+(defmacro bind->
+  "Thread-first expansion using bind.
+  Example usage                           Expanded as
+  -------------                         | -----------
+  (bind-> (place-order)                 | (-> (place-order)
+    (check-inventory :foo)              |   (bind (fn [x] (check-inventory x :foo)))
+    [(cancel-order :bar) process-order] |   (bind (fn [x] (cancel-order x :bar)) process-order)
+    fulfil-order)                       |   (bind fulfil-order))
+  See:
+    bind->>
+    bind-as->"
+  [x & forms]
+  (let [expander-f (fn [each] (if (list? each)
+                                (with-meta `(^:once fn* [x#] (~(first each) x# ~@(rest each))) (meta each))
+                                each))
+        bind-forms (map #(bind-expr expander-f %) forms)]
+    `(-> ~x
+       ~@bind-forms)))
+
+
+(defmacro bind->>
+  "Thread-last expansion using bind.
+  Example usage                           Expanded as
+  -------------                         | -----------
+  (bind->> (place-order)                | (-> (place-order)
+    (check-inventory :foo)              |   (bind (fn [x] (check-inventory :foo x)))
+    [(cancel-order :bar) process-order] |   (bind (fn [x] (cancel-order :bar x)) process-order)
+    fulfil-order)                       |   (bind fulfil-order))
+  See:
+    bind->
+    bind-as->"
+  [x & forms]
+  (let [expander-f (fn [each] (if (list? each)
+                                (with-meta `(^:once fn* [x#] (~(first each) ~@(rest each) x#)) (meta each))
+                                each))
+        bind-forms  (map #(bind-expr expander-f %) forms)]
+    `(-> ~x
+       ~@bind-forms)))
+
+
+(defmacro bind-as->
+  "Thread-anywhere expansion using bind.
+  Example usage                             Expanded as
+  -------------                           | -----------
+  (bind-as-> (place-order) $              | (-> (place-order)
+    (check-inventory $ :foo)              |   (bind (fn [$] (check-inventory $ :foo)))
+    [(cancel-order :bar $) process-order] |   (bind (fn [$] (cancel-order :bar $)) (fn [_] process-order))
+    (fulfil-order $))                     |   (bind (fn [$] (fulfil-order $))))
+  See:
+    bind->
+    bind->>"
+  [expr name & forms]
+  (let [expander-f (fn [each] (if (list? each)
+                                (with-meta `(^:once fn* [~name] ~each) (meta each))
+                                `(^:once fn* [_#] ~each)))
+        bind-forms (map #(bind-expr expander-f %) forms)]
+    `(-> ~expr
+       ~@bind-forms)))
+
+
 (defmacro bind-deref
   "Rewrite the arguments `result` and `exprs` as thread-first form using `bind`.
   For example, the expression below:
