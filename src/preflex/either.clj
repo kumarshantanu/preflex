@@ -140,7 +140,7 @@
 
 
 (defmacro bind->
-  "Thread-first expansion using bind.
+  "Thread-first expansion using bind. A vector form of one element [x] is treated as [x x].
   Example usage                           Expanded as
   -------------                         | -----------
   (bind-> (place-order)                 | (-> (place-order)
@@ -160,7 +160,7 @@
 
 
 (defmacro bind->>
-  "Thread-last expansion using bind.
+  "Thread-last expansion using bind. A vector form of one element [x] is treated as [x x].
   Example usage                           Expanded as
   -------------                         | -----------
   (bind->> (place-order)                | (-> (place-order)
@@ -180,7 +180,7 @@
 
 
 (defmacro bind-as->
-  "Thread-anywhere expansion using bind.
+  "Thread-anywhere expansion using bind. A vector form of one element [x] is treated as [x x].
   Example usage                             Expanded as
   -------------                           | -----------
   (bind-as-> (place-order) $              | (-> (place-order)
