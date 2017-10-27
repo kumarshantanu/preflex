@@ -14,13 +14,12 @@ All notable changes to this project will be documented in this file. This change
   - Out of the box Class loader, Garbage collection, processor utilization, thread pools instrumentation
 
 
-## [WIP] 0.4.0-alpha3 / 2017-October-??
+## 0.4.0-alpha3 / 2017-October-27
 ### Added
 - Add 'either' fault-handling abstraction in `preflex.either` ns (adaptation of the either-monad)
   - Helper fns `success`, `failure`
-  - The `bind` (and `bind-deref`) dispatcher
+  - The `bind` dispatcher (and helpers: `bind->`, `bind->>`, `bind-as->`, `bind-deref`)
   - Helpers `do-either`, `deref-either`, `either`
-  - `bind->`, `bind->>` and `bind-as->`
   - [TODO] Remove `bind-deref`
 - Add Hystrix-metrics emulation helpers
   - Command metrics
