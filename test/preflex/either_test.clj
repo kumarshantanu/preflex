@@ -23,9 +23,15 @@
   (is (= :foo (either/bind :foo identity)))
   (is (= :foo (-> (either/do-either :foo)
                 (either/bind identity))))
-  (is (thrown? IllegalStateException
+  (is (thrown? IllegalArgumentException
         (-> (either/do-either (throw (IllegalStateException. "test error")))
-          (either/bind #(throw %) identity))) "do-either throws exception")
+          (either/bind #(throw (IllegalArgumentException. %)) identity))) "do-either throws exception")
+  (is (= 1000 (-> :foo
+                (either/bind either/failure)
+                (either/bind {:foo 1000} vector))) "failure channel")
+  (is (= [20] (-> :foo
+                (either/bind {:foo 20})
+                (either/bind {:foo 1000} vector))) "success channel")
   (is (= [210] (either/bind-deref 100
                  (fn [^long x] (* 2 x))
                  #(+ 10 ^long %)
@@ -47,7 +53,15 @@
           either/failure
           [{:foo 10
             :bar 20} vector]
-          (+ 50)))))
+          (+ 50))))
+  (is (= :foo
+        (either/bind-> :foo
+          either/failure
+          [either/deref-either])) "1-element vector applies to both failure and success")
+  (is (= :foo
+        (either/bind-> :foo
+          identity
+          [either/deref-either])) "1-element vector applies to both failure and success"))
 
 
 (deftest test-bind->>
@@ -63,7 +77,15 @@
            :bar 2}
           either/failure
           [(* 0) (vector 2)]
-          inc))))
+          inc)))
+  (is (= :foo
+        (either/bind->> :foo
+          either/failure
+          [either/deref-either])) "1-element vector applies to both failure and success")
+  (is (= :foo
+        (either/bind->> :foo
+          identity
+          [either/deref-either])) "1-element vector applies to both failure and success"))
 
 
 (deftest test-bind-as->
@@ -78,4 +100,12 @@
           ({:foo 1
             :bar 2} $)
           [(* 0 $) (vector $ 2)]
-          30))))
+          30)))
+  (is (= :foo
+        (either/bind-as-> :foo $
+          (either/failure $)
+          [(either/deref-either $)])) "1-element vector applies to both failure and success")
+  (is (= :foo
+        (either/bind-as-> :foo $
+          (identity $)
+          [(either/deref-either $)])) "1-element vector applies to both failure and success"))

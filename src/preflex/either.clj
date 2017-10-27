@@ -132,9 +132,10 @@
   Internal function for use by bind->, bind->> and bind-as-> only."
   [f form]
   (if (vector? form)
-    (if (= 2 (count form))
-      `(bind ~@(map f form))
-      (throw (ex-info (str "Expected vector form to have two elements, but found " form) {})))
+    (case (count form)
+      2 `(bind ~@(map f form))
+      1 `(bind ~@(map f form) ~@(map f form))
+      (throw (ex-info (str "Expected vector form to have one or two elements, but found " form) {})))
     `(bind ~(f form))))
 
 
