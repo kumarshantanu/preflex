@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file. This change
   - Out of the box Class loader, Garbage collection, processor utilization, thread pools instrumentation
 
 
-## 0.4.0-alpha3 / 2017-October-27
+## [WIP] 0.4.0-alpha4 / 2017-October-??
 ### Added
 - Add 'either' fault-handling abstraction in `preflex.either` ns (adaptation of the either-monad)
   - Helper fns `success`, `failure`
