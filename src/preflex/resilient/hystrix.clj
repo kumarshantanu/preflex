@@ -129,8 +129,8 @@
                                  (m/make-rolling-boolean-counter :rolling-count-success :rolling-count-failure
                                    bucket-count {:event-id-fn now-finder})])
           exceptions-thrown   (m/make-union-collector
-                                [(m/make-integer-counter :cumulative-count-exceptions)
-                                 (m/make-rolling-integer-counter :rolling-count-exceptions bucket-count
+                                [(m/make-integer-counter :cumulative-count-exceptions-thrown)
+                                 (m/make-rolling-integer-counter :rolling-count-exceptions-thrown bucket-count
                                    {:event-id-fn now-finder})])
           ;; semaphores
           semaphore-reject    (m/make-union-collector
