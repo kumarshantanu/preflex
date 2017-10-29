@@ -259,7 +259,10 @@
                   error-count
                   request-count
                   error-percentage
-                  execution-semaphore-permits-in-use]} (metrics-reporter)
+                  execution-semaphore-permits-in-use]
+           :as command-metrics} (metrics-reporter)
+          execute-latency (or execute-latency {:mean 0 :percentiles {}})
+          total-latency   (or total-latency   {:mean 0 :percentiles {}})
           fallback-metrics (fallback-metrics-reporter)
           cumulative-fallback-success (:cumulative-count-success fallback-metrics)
           cumulative-fallback-failure (:cumulative-count-failure fallback-metrics)
