@@ -1,4 +1,4 @@
-# Change Log
+# preflex Todo and Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
 ## TODO
@@ -16,11 +16,6 @@ All notable changes to this project will be documented in this file. This change
 
 ## [WIP] 0.4.0-alpha4 / 2017-October-??
 ### Added
-- Add 'either' fault-handling abstraction in `preflex.either` ns (adaptation of the either-monad)
-  - Helper fns `success`, `failure`
-  - The `bind` dispatcher (and helpers: `bind->`, `bind->>`, `bind-as->`, `bind-deref`)
-  - Helpers `do-either`, `deref-either`, `either`
-  - [TODO] Remove `bind-deref`
 - Add Hystrix-metrics emulation helpers
   - Command metrics
   - Thread pool metrics
