@@ -51,7 +51,8 @@
         o-reporter (h/make-metrics-reporter metrics-collectors
                      {:circuit-breaker     circuit-breaker
                       :execution-semaphore execution-semaphore})
-        metrics-source (h/make-hystrix-command-metrics-source "sample" o-reporter o-reporter)
+        command-metrics-source (h/make-hystrix-command-metrics-source "sample-command" o-reporter o-reporter)
+        th-pool-metrics-source (h/make-hystrix-thread-pool-metrics-source "sample-thread-pool" o-reporter)
         command (->> primary
                   (r/wrap-thread-pool thread-pool thread-pool-options)
                   (r/wrap-semaphore execution-semaphore semaphore-options)
@@ -65,8 +66,13 @@
            :headers {"Content-Type" "text/html"}
            :body    "hello HTTP!"})
       (ssec/streaming-middleware sseh/generate-stream {:request-matcher (partial ssec/uri-match "/hystrix.stream")
-                                                       :chunk-generator (-> (fn [_] (json/generate-string
-                                                                                      (metrics-source)) )
+                                                       :chunk-generator (-> (fn [_] (str
+                                                                                      (json/generate-string
+                                                                                        (command-metrics-source))
+                                                                                      \newline
+                                                                                      \newline
+                                                                                      (json/generate-string
+                                                                                        (th-pool-metrics-source))) )
                                                                           (ssew/wrap-delay 1000)
                                                                           ssew/wrap-sse-event
                                                                           ssew/wrap-pst)}))))
