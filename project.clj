@@ -22,6 +22,6 @@
                        :main ^:skip-aot preflex.hystrix-main}
              :c17 {:dependencies [[org.clojure/clojure "1.7.0"]]}
              :c18 {:dependencies [[org.clojure/clojure "1.8.0"]]}
-             :c19 {:dependencies [[org.clojure/clojure "1.9.0-beta3"]]}
+             :c19 {:dependencies [[org.clojure/clojure "1.9.0-RC2"]]}
              :dln {:jvm-opts ["-Dclojure.compiler.direct-linking=true"]}}
   :deploy-repositories [["releases" {:url "https://clojars.org" :creds :gpg}]])
