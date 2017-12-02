@@ -233,6 +233,8 @@
 
 
 (defn make-hystrix-command-metrics-source
+  "Given command name, metrics reporter fn `(fn []) -> map` and fallback metric reporter fn `(fn []) -> map` construct
+  and return a fn (fn []) -> HystrixCommandMetrics."
   [command-name metrics-reporter fallback-metrics-reporter]
   (fn []
     (let [{:keys [;; -- cumulative counts --
@@ -392,6 +394,8 @@
 
 
 (defn make-hystrix-thread-pool-metrics-source
+  "Given thread-pool name and thread-pool metrics reporter fn `(fn []) -> map` construct and return a fn
+  `(fn []) -> HystrixThreadPoolMetrics`."
   [thread-pool-name thread-pool-metrics-reporter]
   (fn []
     (let [{:keys [rolling-count-max-active-threads
