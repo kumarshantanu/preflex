@@ -8,7 +8,7 @@
 
 
 (ns preflex.resilient.hystrix
-  "Emulation of Hystrix command/metrics.
+  "Emulation of Hystrix command/metrics. Experimental - in Alpha.
   See:
   1. https://github.com/Netflix/Hystrix
   2. https://github.com/Netflix/Hystrix/wiki/Metrics-and-Monitoring

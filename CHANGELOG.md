@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file. This change
   - Out of the box Class loader, Garbage collection, processor utilization, thread pools instrumentation
 
 
-## [WIP] 0.4.0-alpha4 / 2017-October-??
+## 0.4.0-alpha4 / 2017-December-09
 ### Added
 - Add Hystrix-metrics emulation helpers
   - Command metrics
