@@ -16,8 +16,8 @@
     [preflex.type SampleMetrics]))
 
 
-(deftest test-make-default-collectors
-  (let [collectors (hystrix/make-default-collectors)
+(deftest test-make-command-metrics-collectors
+  (let [collectors (hystrix/make-command-metrics-collectors)
         {:keys [;; trackers
                 latency-tracker
                 success-failure-tracker
@@ -27,13 +27,13 @@
                 semaphore-options
                 thread-pool-options
                 metrics-collectors]} collectors
-        reporter   (hystrix/make-metrics-reporter metrics-collectors)
+        reporter   (hystrix/make-command-metrics-reporter metrics-collectors)
         fd (r/make-rolling-fault-detector 20 [10000 :millis])
         rr (r/make-half-open-retry-resolver [5 :seconds])
         circuit-breaker     (r/make-circuit-breaker fd rr circuit-breaker-options)
         execution-semaphore (r/make-counting-semaphore 10 semaphore-options)
         thread-pool (r/make-bounded-thread-pool 10 20)
-        o-reporter (hystrix/make-metrics-reporter metrics-collectors
+        o-reporter (hystrix/make-command-metrics-reporter metrics-collectors
                      {:circuit-breaker     circuit-breaker
                       :execution-semaphore execution-semaphore})]
     (is (map? collectors))

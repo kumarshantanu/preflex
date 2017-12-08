@@ -114,10 +114,10 @@
 (def hystrix-latency-percentiles [5 25 50 75 90 99 99.5])
 
 
-(defn make-default-collectors
+(defn make-command-metrics-collectors
   "Make the default collectors as options for resilient primitives, required for Hystrix reporting."
   ([]
-    (make-default-collectors {}))
+    (make-command-metrics-collectors {}))
   ([{:keys [bucket-count
             now-finder
             percentiles]
@@ -174,9 +174,9 @@
        :circuit-breaker-options {:on-circuit-deny     (fn [context]    (type/record! short-circuited))}})))
 
 
-(defn make-metrics-reporter
+(defn make-command-metrics-reporter
   ([metrics-collectors]
-    (make-metrics-reporter metrics-collectors {}))
+    (make-command-metrics-reporter metrics-collectors {}))
   ([metrics-collectors {:keys [execution-semaphore
                                circuit-breaker]}]
     (let [{:keys [success-failure

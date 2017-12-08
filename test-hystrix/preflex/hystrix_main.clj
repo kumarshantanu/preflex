@@ -41,15 +41,15 @@
                 semaphore-options
                 thread-pool-options
                 metrics-collectors]
-         :as collectors} (h/make-default-collectors)
+         :as collectors} (h/make-command-metrics-collectors)
         tp-collectors (:metrics-collectors (h/make-thread-pool-metrics-collectors))
-        reporter (h/make-metrics-reporter metrics-collectors)
+        reporter (h/make-command-metrics-reporter metrics-collectors)
         fd (r/make-rolling-fault-detector 20 [10000 :millis])
         rr (r/make-half-open-retry-resolver [5 :seconds])
         circuit-breaker     (r/make-circuit-breaker fd rr circuit-breaker-options)
         execution-semaphore (r/make-counting-semaphore 10 semaphore-options)
         thread-pool (r/make-bounded-thread-pool 10 20)
-        cm-reporter (h/make-metrics-reporter metrics-collectors
+        cm-reporter (h/make-command-metrics-reporter metrics-collectors
                       {:circuit-breaker     circuit-breaker
                        :execution-semaphore execution-semaphore})
         tp-reporter (h/make-thread-pool-metrics-reporter tp-collectors
