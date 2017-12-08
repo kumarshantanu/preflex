@@ -21,6 +21,7 @@
     [preflex.type           :as type]
     [preflex.util           :as u])
   (:import
+    [java.util.concurrent BlockingQueue ThreadPoolExecutor]
     [clojure.lang IDeref IFn]
     [preflex.resilient.impl CircuitBreakerState DefaultCircuitBreaker]))
 
@@ -373,24 +374,75 @@
    #_Number rollingMaxActiveThreads
    #_Number rollingCountThreadsExecuted
    ;; ----------
-   ;; Cumulative Counts (Counter)
-   ;; ----------
-   #_Long countThreadsExecuted
-   ;; ----------
    ;; ThreadPool State (Gauge)
    ;; ----------
-   #_Number threadActiveCount
-   #_Number completedTaskCount
-   #_Number largestPoolSize
-   #_Number totalTaskCount
-   #_Number queueSize
+   #_Long currentPoolSize
+   #_Long currentCorePoolSize
+   #_Long currentMaximumPoolSize
+   #_Long currentActiveCount         ; number of active threads
+   #_Long currentCompletedTaskCount  ; total tasks completed so far
+   #_Long currentLargestPoolSize
+   #_Long currentTaskCount           ; total task count so far
+   #_Long currentQueueSize
    ;; ----------
    ;; Property Values (Informational)
    ;; ----------
-   #_Number propertyValue_corePoolSize
-   #_Number propertyValue_keepAliveTimeInMinutes
-   #_Number propertyValue_queueSizeRejectionThreshold
-   #_Number propertyValue_maxQueueSize])
+   #_Long propertyValue_queueSizeRejectionThreshold
+   #_Long propertyValue_metricsRollingStatisticalWindowInMilliseconds])
+
+
+(defn make-thread-pool-metrics-collectors
+  "Make the default collectors as options for resilient primitives, required for Hystrix reporting."
+  ([]
+    (make-thread-pool-metrics-collectors {}))
+  ([{:keys [bucket-count
+            now-finder]
+     :or {bucket-count 11
+          now-finder   u/now-millis}}]
+    (let [max-active-threads (m/make-rolling-max-collector :rolling-count-max-active-threads bucket-count
+                               {:event-id-fn now-finder})
+          threads-executed   (m/make-rolling-integer-counter :rolling-count-threads-executed bucket-count
+                               {:event-id-fn now-finder})
+          threads-rejected   (m/make-rolling-integer-counter :rolling-count-threads-rejected bucket-count
+                               {:event-id-fn now-finder})]
+      {:metrics-collectors  {:max-active-threads max-active-threads
+                             :threads-executed   threads-executed}
+       :thread-pool-options {:on-task-submit (fn [context]
+                                               (type/record! max-active-threads)
+                                               (type/record! threads-executed))
+                             :on-task-reject (fn [context ex]
+                                               (type/record! threads-rejected))}})))
+
+
+(defn make-thread-pool-metrics-reporter
+  ([metrics-collectors]
+    (make-thread-pool-metrics-reporter metrics-collectors {}))
+  ([metrics-collectors ^ThreadPoolExecutor thread-pool]
+    (let [{:keys [max-active-threads
+                  threads-executed]} metrics-collectors
+          ;; new reporters
+          thread-pool-stats (reify IDeref (deref [_] {:pool-size            (.getPoolSize           thread-pool)
+                                                      :core-pool-size       (.getCorePoolSize       thread-pool)
+                                                      :max-pool-size        (.getMaximumPoolSize    thread-pool)
+                                                      :active-count         (.getActiveCount        thread-pool)
+                                                      :completed-task-count (.getCompletedTaskCount thread-pool)
+                                                      :largest-pool-size    (.getLargestPoolSize    thread-pool)
+                                                      :task-count           (.getTaskCount          thread-pool)
+                                                      :queue-size           (.size
+                                                                              ^BlockingQueue (.getQueue thread-pool))}))
+          metrics-reporter  (fn [] (->> [max-active-threads
+                                         threads-executed
+                                         thread-pool-stats]
+                                     (mapv deref)
+                                     (apply merge)))]
+      (reify
+        IFn
+        (invoke  [_]     (metrics-reporter))
+        (invoke  [_ x]   ((metrics-reporter) x))
+        (invoke  [_ x y] ((metrics-reporter) x y))
+        (applyTo [_ c]   (apply (metrics-reporter) c))
+        IDeref
+        (deref   [_]     (metrics-reporter))))))
 
 
 (defn make-hystrix-thread-pool-metrics-source
@@ -400,12 +452,14 @@
   (fn []
     (let [{:keys [rolling-count-max-active-threads
                   rolling-count-threads-executed
-                  cumulative-count-threads-executed
-                  count-active-threads
-                  count-completed-tasks
-                  count-largest-pool-size
-                  count-total-tasks
-                  count-queue-size]} (thread-pool-metrics-reporter)]
+                  pool-size
+                  core-pool-size
+                  max-pool-size
+                  active-count
+                  completed-task-count
+                  largest-pool-size
+                  task-count
+                  queue-size]} (thread-pool-metrics-reporter)]
       (->HystrixThreadPoolMetrics
         ;; ----------
         ;; Informational and Status
@@ -419,22 +473,19 @@
         rolling-count-max-active-threads  ; #_Number rollingMaxActiveThreads
         rolling-count-threads-executed    ; #_Number rollingCountThreadsExecuted
         ;; ----------
-        ;; Cumulative Counts (Counter)
-        ;; ----------
-        cumulative-count-threads-executed ; #_Long countThreadsExecuted
-        ;; ----------
         ;; ThreadPool State (Gauge)
         ;; ----------
-        count-active-threads    ; #_Number threadActiveCount
-        count-completed-tasks   ; #_Number completedTaskCount
-        count-largest-pool-size ; #_Number largestPoolSize
-        count-total-tasks       ; #_Number totalTaskCount
-        count-queue-size        ; #_Number queueSize
+        pool-size            ; #_Long currentPoolSize
+        core-pool-size       ; #_Long currentCorePoolSize
+        max-pool-size        ; #_Long currentMaximumPoolSize
+        active-count         ; #_Long currentActiveCount         ; number of active threads
+        completed-task-count ; #_Long currentCompletedTaskCount  ; total tasks completed so far
+        largest-pool-size    ; #_Long currentLargestPoolSize
+        task-count           ; #_Long currentTaskCount           ; total task count so far
+        queue-size           ; #_Long currentQueueSize
         ;; ----------
         ;; Property Values (Informational)
         ;; ----------
-        -1 ; #_Number propertyValue_corePoolSize
-        -1 ; #_Number propertyValue_keepAliveTimeInMinutes
-        -1 ; #_Number propertyValue_queueSizeRejectionThreshold
-        -1 ; #_Number propertyValue_maxQueueSize
+        -1 ; #_Long propertyValue_queueSizeRejectionThreshold
+        -1 ; #_Long propertyValue_metricsRollingStatisticalWindowInMilliseconds
         ))))

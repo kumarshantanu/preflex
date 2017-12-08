@@ -42,17 +42,20 @@
                 thread-pool-options
                 metrics-collectors]
          :as collectors} (h/make-default-collectors)
+        tp-collectors (:metrics-collectors (h/make-thread-pool-metrics-collectors))
         reporter (h/make-metrics-reporter metrics-collectors)
         fd (r/make-rolling-fault-detector 20 [10000 :millis])
         rr (r/make-half-open-retry-resolver [5 :seconds])
         circuit-breaker     (r/make-circuit-breaker fd rr circuit-breaker-options)
         execution-semaphore (r/make-counting-semaphore 10 semaphore-options)
         thread-pool (r/make-bounded-thread-pool 10 20)
-        o-reporter (h/make-metrics-reporter metrics-collectors
-                     {:circuit-breaker     circuit-breaker
-                      :execution-semaphore execution-semaphore})
-        command-metrics-source (h/make-hystrix-command-metrics-source "sample-command" o-reporter o-reporter)
-        th-pool-metrics-source (h/make-hystrix-thread-pool-metrics-source "sample-thread-pool" o-reporter)
+        cm-reporter (h/make-metrics-reporter metrics-collectors
+                      {:circuit-breaker     circuit-breaker
+                       :execution-semaphore execution-semaphore})
+        tp-reporter (h/make-thread-pool-metrics-reporter tp-collectors
+                      (:thread-pool thread-pool))
+        command-metrics-source (h/make-hystrix-command-metrics-source "sample-command" cm-reporter cm-reporter)
+        th-pool-metrics-source (h/make-hystrix-thread-pool-metrics-source "sample-thread-pool" tp-reporter)
         command (->> primary
                   (r/wrap-thread-pool thread-pool thread-pool-options)
                   (r/wrap-semaphore execution-semaphore semaphore-options)
@@ -82,4 +85,5 @@
   [& args]
   (-> (setup)  ; ring handler
     (hks/run-server {:port 3000}))
-  (println "HTTP Kit server started on http://localhost:3000"))
+  (println "HTTP Kit server started on http://localhost:3000")
+  (println "Streaming Hystrix metrics at URL http://localhost:3000/hystrix.stream"))
