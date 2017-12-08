@@ -15,7 +15,8 @@
     [ring-sse-middleware.wrapper          :as ssew]
     [ring-sse-middleware.adapter.http-kit :as sseh]
     [preflex.resilient         :as r]
-    [preflex.resilient.hystrix :as h])
+    [preflex.resilient.hystrix :as h]
+    [preflex.type              :as t])
   (:gen-class))
 
 
@@ -53,7 +54,7 @@
                       {:circuit-breaker     circuit-breaker
                        :execution-semaphore execution-semaphore})
         tp-reporter (h/make-thread-pool-metrics-reporter tp-collectors
-                      (:thread-pool thread-pool))
+                      (t/thread-pool thread-pool))
         command-metrics-source (h/make-hystrix-command-metrics-source "sample-command" cm-reporter cm-reporter)
         th-pool-metrics-source (h/make-hystrix-thread-pool-metrics-source "sample-thread-pool" tp-reporter)
         command (->> primary

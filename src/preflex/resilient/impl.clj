@@ -52,7 +52,9 @@
   (submit           [_ task result]        (.submit           thread-pool task result))
   t/IBoundedQueueInfo
   (queue-capacity   [_]                    queue-capacity)
-  (queue-size       [_]                    (.size ^BlockingQueue (.getQueue thread-pool))))
+  (queue-size       [_]                    (.size ^BlockingQueue (.getQueue thread-pool)))
+  t/IThreadPool
+  (thread-pool      [_]                    thread-pool))
 
 
 (defn bounded-thread-pool?

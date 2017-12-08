@@ -21,7 +21,7 @@
   * SampleMetrics     - stats for sample metrics data"
   (:import
     [java.util List Map]
-    [java.util.concurrent TimeUnit]))
+    [java.util.concurrent ThreadPoolExecutor TimeUnit]))
 
 
 ;; ----- invokable -----
@@ -64,6 +64,10 @@
 (defprotocol IBoundedQueueInfo
   (queue-capacity [this] "Return maximum capacity of a bounded queue")
   (queue-size     [this] "Return the current size of a bounded queue"))
+
+
+(defprotocol IThreadPool
+  (^ThreadPoolExecutor thread-pool [this] "Return the associated ThreadPoolExecutor instance"))
 
 
 (defprotocol ISemaphore

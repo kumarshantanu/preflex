@@ -415,8 +415,6 @@
 
 
 (defn make-thread-pool-metrics-reporter
-  ([metrics-collectors]
-    (make-thread-pool-metrics-reporter metrics-collectors {}))
   ([metrics-collectors ^ThreadPoolExecutor thread-pool]
     (let [{:keys [max-active-threads
                   threads-executed]} metrics-collectors
