@@ -15,13 +15,13 @@
                                   [clj-dbcp            "0.9.0"]
                                   [com.h2database/h2   "1.3.176"]]}
              :hystrix {:dependencies [[org.clojure/clojure "1.8.0"]
-                                      [http-kit "2.3.0-alpha4"]
+                                      [http-kit "2.3.0-rc1"]
                                       [ring-sse-middleware "0.1.2"]
                                       [cheshire "5.8.0"]]
                        :source-paths ["test-hystrix"]
                        :main ^:skip-aot preflex.hystrix-main}
              :c17 {:dependencies [[org.clojure/clojure "1.7.0"]]}
              :c18 {:dependencies [[org.clojure/clojure "1.8.0"]]}
-             :c19 {:dependencies [[org.clojure/clojure "1.9.0-RC2"]]}
+             :c19 {:dependencies [[org.clojure/clojure "1.9.0"]]}
              :dln {:jvm-opts ["-Dclojure.compiler.direct-linking=true"]}}
   :deploy-repositories [["releases" {:url "https://clojars.org" :creds :gpg}]])
