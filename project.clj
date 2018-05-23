@@ -1,4 +1,4 @@
-(defproject preflex "0.4.0-alpha4"
+(defproject preflex "0.4.0-SNAPSHOT"
   :description "Metrics, Instrumentation and Resilience for Clojure"
   :url "https://github.com/kumarshantanu/preflex"
   :license {:name "Eclipse Public License"
@@ -11,7 +11,7 @@
                 *unchecked-math* :warn-on-boxed}
   :profiles {:provided {:dependencies [[org.clojure/clojure "1.7.0"]]
                         :global-vars {*unchecked-math* :warn-on-boxed}}
-             :dev {:dependencies [[asphalt             "0.6.5"]
+             :dev {:dependencies [[asphalt             "0.6.7"]
                                   [clj-dbcp            "0.9.0"]
                                   [com.h2database/h2   "1.3.176"]]}
              :hystrix {:dependencies [[org.clojure/clojure "1.8.0"]

@@ -12,9 +12,13 @@ All notable changes to this project will be documented in this file. This change
 - Instrumentation
   - http://micrometer.io/
   - Out of the box Class loader, Garbage collection, processor utilization, thread pools instrumentation
+- Tests
+  - Tests for command metrics
+  - Tests for thread-pool metrics
+  - Tests for emitting metrics and visualization with Hystrix-dashboard
 
 
-## 0.4.0-alpha4 / 2017-December-09
+## 0.4.0-SNAPSHOT / 2018-May-??
 ### Added
 - Add Hystrix-metrics emulation helpers
   - Command metrics
@@ -22,9 +26,7 @@ All notable changes to this project will be documented in this file. This change
   - Metrics collectors for use with resilience primitives
   - Metrics reporters for emitting metrics data
   - Tests for collecting and reporting metrics
-  - [TODO] Tests for command metrics
-  - [TODO] Tests for thread-pool metrics
-  - [TODO] Tests for emitting metrics and visualization with Hystrix-dashboard
+
 
 ### Changed
 - Resilience primitives
