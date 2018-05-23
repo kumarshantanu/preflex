@@ -26,7 +26,16 @@ Preflex provides the following facilities:
 
 ## Usage
 
-Leiningen coordinates: `[preflex "0.4.0"]`
+Clojars coordinates: `[preflex "0.4.0"]`
+
+Github coordinates:
+
+``` edn
+{:deps {preflex {:git/url "https://github.com/kumarshantanu/preflex.git"
+                 :sha "31d6e86b19710f1875c9a5bc26ce4886f07bc2f9"}}}
+```
+
+[![Cljdocs alpha](https://img.shields.io/badge/cljdoc-0.4.0-blue.svg)](https://cljdoc.xyz/d/preflex/preflex/0.4.0/)
 
 See [documentation](doc/intro.md)
 
