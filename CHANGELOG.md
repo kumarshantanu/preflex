@@ -18,7 +18,7 @@ All notable changes to this project will be documented in this file. This change
   - Tests for emitting metrics and visualization with Hystrix-dashboard
 
 
-## 0.4.0-SNAPSHOT / 2018-May-??
+## 0.4.0 / 2018-May-23
 ### Added
 - Add Hystrix-metrics emulation helpers
   - Command metrics
