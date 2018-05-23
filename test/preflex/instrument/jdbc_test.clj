@@ -30,25 +30,37 @@
 
 (deftest test-instrument-datasource
   (let [wrapper-state (atom {:conn-create 0
+                             :conn-close  0
                              :stmt-create 0
+                             :stmt-close  0
                              :sql-execute 0})
         inc-wrapstate (fn [k] (swap! wrapper-state update k inc))
         instru-ds (instru/instrument-datasource orig-ds
-                    {:conn-creation-wrapper (fn [context f] (inc-wrapstate :conn-create) (f))
-                     :stmt-creation-wrapper (fn [context f] (inc-wrapstate :stmt-create) (f))
+                    {:conn-creation-wrapper (fn [context f] (inc-wrapstate (case (:jdbc-event context)
+                                                                             :connection-create :conn-create
+                                                                             :connection-close  :conn-close)) (f))
+                     :stmt-creation-wrapper (fn [context f] (inc-wrapstate (case (:jdbc-event context)
+                                                                             :statement-create :stmt-create
+                                                                             :statement-close  :stmt-close)) (f))
                      :sql-execution-wrapper (fn [context f] (inc-wrapstate :sql-execute) (f))})]
     (with-open [^Connection conn (.getConnection ^DataSource instru-ds)]
       (is (= {:conn-create 1
+              :conn-close  0
               :stmt-create 0
+              :stmt-close  0
               :sql-execute 0}
             @wrapper-state) "After connection obtain")
       (asphalt/update instru-ds (:create-ddl config) [])
       (is (= {:conn-create 2
+              :conn-close  1
               :stmt-create 1
+              :stmt-close  1
               :sql-execute 1}
             @wrapper-state) "After DDL Create")
       (asphalt/update instru-ds (:drop-ddl   config) [])
       (is (= {:conn-create 3
+              :conn-close  2
               :stmt-create 2
+              :stmt-close  2
               :sql-execute 2}
             @wrapper-state) "After DDL Drop"))))

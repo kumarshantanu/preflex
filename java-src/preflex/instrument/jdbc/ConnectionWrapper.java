@@ -30,21 +30,25 @@ import java.util.Properties;
 import java.util.concurrent.Executor;
 
 import preflex.instrument.task.CallTask1;
+import preflex.instrument.task.RunTask1;
 import preflex.instrument.task.Wrapper;
 
-public class ConnectionWrapper<JdbcStatementCreation, SQLExecution> implements Connection {
+public class ConnectionWrapper<JdbcConnectionCreation, JdbcStatementCreation, SQLExecution> implements Connection {
 
     private final Connection conn;
-    private final JdbcEventFactory<?, JdbcStatementCreation, SQLExecution> eventFactory;
+    private final JdbcEventFactory<JdbcConnectionCreation, JdbcStatementCreation, SQLExecution> eventFactory;
+    private final Wrapper<JdbcConnectionCreation> connCreationWrapper;
     private final Wrapper<JdbcStatementCreation> stmtCreationWrapper;
     private final Wrapper<SQLExecution> sqlExecutionWrapper;
 
     public ConnectionWrapper(final Connection conn,
-            final JdbcEventFactory<?, JdbcStatementCreation, SQLExecution> eventFactory,
+            final JdbcEventFactory<JdbcConnectionCreation, JdbcStatementCreation, SQLExecution> eventFactory,
+            final Wrapper<JdbcConnectionCreation> connCreationWrapper,
             final Wrapper<JdbcStatementCreation> stmtCreationWrapper,
             final Wrapper<SQLExecution> sqlExecutionWrapper) {
         this.conn = conn;
         this.eventFactory = eventFactory;
+        this.connCreationWrapper = connCreationWrapper;
         this.stmtCreationWrapper = stmtCreationWrapper;
         this.sqlExecutionWrapper = sqlExecutionWrapper;
     }
@@ -65,7 +69,8 @@ public class ConnectionWrapper<JdbcStatementCreation, SQLExecution> implements C
         final CallTask1<Statement, SQLException> task = new CallTask1<Statement, SQLException>() {
             @Override
             public Statement call() throws SQLException {
-                return new StatementWrapper<>(conn, conn.createStatement(), eventFactory, sqlExecutionWrapper);
+                return new StatementWrapper<>(conn, conn.createStatement(), eventFactory,
+                        stmtCreationWrapper, sqlExecutionWrapper);
             }
         };
         return stmtCreationWrapper.call(event, task, SQLException.class);
@@ -78,7 +83,7 @@ public class ConnectionWrapper<JdbcStatementCreation, SQLExecution> implements C
             @Override
             public PreparedStatement call() throws SQLException {
                 return new PreparedStatementWrapper<>(conn, conn.prepareStatement(sql), sql, eventFactory,
-                        sqlExecutionWrapper);
+                        stmtCreationWrapper, sqlExecutionWrapper);
             }
         };
         return stmtCreationWrapper.call(event, task, SQLException.class);
@@ -91,7 +96,7 @@ public class ConnectionWrapper<JdbcStatementCreation, SQLExecution> implements C
             @Override
             public CallableStatement call() throws SQLException {
                 return new CallableStatementWrapper<>(conn, conn.prepareCall(sql), sql, eventFactory,
-                        sqlExecutionWrapper);
+                        stmtCreationWrapper, sqlExecutionWrapper);
             }
         };
         return stmtCreationWrapper.call(event, task, SQLException.class);
@@ -124,7 +129,14 @@ public class ConnectionWrapper<JdbcStatementCreation, SQLExecution> implements C
 
     @Override
     public void close() throws SQLException {
-        conn.close();
+        final JdbcConnectionCreation event = eventFactory.jdbcConnectionCloseEvent();
+        final RunTask1<SQLException> task = new RunTask1<SQLException>() {
+            @Override
+            public void run() throws SQLException {
+                conn.close();
+            }
+        };
+        connCreationWrapper.run(event, task, SQLException.class);
     }
 
     @Override
@@ -184,7 +196,7 @@ public class ConnectionWrapper<JdbcStatementCreation, SQLExecution> implements C
             @Override
             public Statement call() throws SQLException {
                 Statement stmt = conn.createStatement(resultSetType, resultSetConcurrency);
-                return new StatementWrapper<>(conn, stmt, eventFactory, sqlExecutionWrapper);
+                return new StatementWrapper<>(conn, stmt, eventFactory, stmtCreationWrapper, sqlExecutionWrapper);
             }
         };
         return stmtCreationWrapper.call(event, task, SQLException.class);
@@ -198,7 +210,8 @@ public class ConnectionWrapper<JdbcStatementCreation, SQLExecution> implements C
             @Override
             public PreparedStatement call() throws SQLException {
                 PreparedStatement pstmt = conn.prepareStatement(sql, resultSetType, resultSetConcurrency);
-                return new PreparedStatementWrapper<>(conn, pstmt, sql, eventFactory, sqlExecutionWrapper);
+                return new PreparedStatementWrapper<>(conn, pstmt, sql, eventFactory,
+                        stmtCreationWrapper, sqlExecutionWrapper);
             }
         };
         return stmtCreationWrapper.call(event, task, SQLException.class);
@@ -212,7 +225,8 @@ public class ConnectionWrapper<JdbcStatementCreation, SQLExecution> implements C
             @Override
             public CallableStatement call() throws SQLException {
                 CallableStatement cstmt = conn.prepareCall(sql, resultSetType, resultSetConcurrency);
-                return new CallableStatementWrapper<>(conn, cstmt, sql, eventFactory, sqlExecutionWrapper);
+                return new CallableStatementWrapper<>(conn, cstmt, sql, eventFactory,
+                        stmtCreationWrapper, sqlExecutionWrapper);
             }
         };
         return stmtCreationWrapper.call(event, task, SQLException.class);
@@ -266,7 +280,7 @@ public class ConnectionWrapper<JdbcStatementCreation, SQLExecution> implements C
             @Override
             public Statement call() throws SQLException {
                 Statement stmt = conn.createStatement(resultSetType, resultSetConcurrency, resultSetHoldability);
-                return new StatementWrapper<>(conn, stmt, eventFactory, sqlExecutionWrapper);
+                return new StatementWrapper<>(conn, stmt, eventFactory, stmtCreationWrapper, sqlExecutionWrapper);
             }
         };
         return stmtCreationWrapper.call(event, task, SQLException.class);
@@ -281,7 +295,8 @@ public class ConnectionWrapper<JdbcStatementCreation, SQLExecution> implements C
             public PreparedStatement call() throws SQLException {
                 PreparedStatement pstmt = conn.prepareStatement(sql, resultSetType, resultSetConcurrency,
                         resultSetHoldability);
-                return new PreparedStatementWrapper<>(conn, pstmt, sql, eventFactory, sqlExecutionWrapper);
+                return new PreparedStatementWrapper<>(conn, pstmt, sql, eventFactory,
+                        stmtCreationWrapper, sqlExecutionWrapper);
             }
         };
         return stmtCreationWrapper.call(event, task, SQLException.class);
@@ -296,7 +311,8 @@ public class ConnectionWrapper<JdbcStatementCreation, SQLExecution> implements C
             public CallableStatement call() throws SQLException {
                 CallableStatement cstmt = conn.prepareCall(sql, resultSetType, resultSetConcurrency,
                         resultSetHoldability);
-                return new CallableStatementWrapper<>(conn, cstmt, sql, eventFactory, sqlExecutionWrapper);
+                return new CallableStatementWrapper<>(conn, cstmt, sql, eventFactory,
+                        stmtCreationWrapper, sqlExecutionWrapper);
             }
         };
         return stmtCreationWrapper.call(event, task, SQLException.class);
@@ -309,7 +325,8 @@ public class ConnectionWrapper<JdbcStatementCreation, SQLExecution> implements C
             @Override
             public PreparedStatement call() throws SQLException {
                 PreparedStatement pstmt = conn.prepareStatement(sql, autoGeneratedKeys);
-                return new PreparedStatementWrapper<>(conn, pstmt, sql, eventFactory, sqlExecutionWrapper);
+                return new PreparedStatementWrapper<>(conn, pstmt, sql, eventFactory,
+                        stmtCreationWrapper, sqlExecutionWrapper);
             }
         };
         return stmtCreationWrapper.call(event, task, SQLException.class);
@@ -322,7 +339,8 @@ public class ConnectionWrapper<JdbcStatementCreation, SQLExecution> implements C
             @Override
             public PreparedStatement call() throws SQLException {
                 PreparedStatement pstmt = conn.prepareStatement(sql, columnIndexes);
-                return new PreparedStatementWrapper<>(conn, pstmt, sql, eventFactory, sqlExecutionWrapper);
+                return new PreparedStatementWrapper<>(conn, pstmt, sql, eventFactory,
+                        stmtCreationWrapper, sqlExecutionWrapper);
             }
         };
         return stmtCreationWrapper.call(event, task, SQLException.class);
@@ -335,7 +353,8 @@ public class ConnectionWrapper<JdbcStatementCreation, SQLExecution> implements C
             @Override
             public PreparedStatement call() throws SQLException {
                 PreparedStatement pstmt = conn.prepareStatement(sql, columnNames);
-                return new PreparedStatementWrapper<>(conn, pstmt, sql, eventFactory, sqlExecutionWrapper);
+                return new PreparedStatementWrapper<>(conn, pstmt, sql, eventFactory,
+                        stmtCreationWrapper, sqlExecutionWrapper);
             }
         };
         return stmtCreationWrapper.call(event, task, SQLException.class);

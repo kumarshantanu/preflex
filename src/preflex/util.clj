@@ -110,6 +110,13 @@
 ;; ----- Duration handling -----
 
 
+(defn duration?
+  "Return true if argument is a valid duration, false otherwise."
+  [x]
+  (and (satisfies? t/IDuration x)
+    (t/duration? x)))
+
+
 (defn resolve-time-unit
   "Resolve given time unit as java.util.concurrent.TimeUnit instance."
   ^TimeUnit [unit]
@@ -134,17 +141,52 @@
 
 (extend-protocol t/IDuration
   List
-  (duration-time [this] (long (first this)))
-  (duration-unit [this] (resolve-time-unit (second this)))
+  (duration? [this] (and (= 2 (count this))
+                      (integer? (first this))
+                      (try (resolve-time-unit (second this)) true
+                        (catch IllegalArgumentException e false))))
+  (dur-time  [this] (long (first this)))
+  (dur-unit  [this] (resolve-time-unit (second this)))
+  (days      [this] (.toDays    (t/dur-unit this) (t/dur-time this)))
+  (hours     [this] (.toHours   (t/dur-unit this) (t/dur-time this)))
+  (minutes   [this] (.toMinutes (t/dur-unit this) (t/dur-time this)))
+  (seconds   [this] (.toSeconds (t/dur-unit this) (t/dur-time this)))
+  (millis    [this] (.toMillis  (t/dur-unit this) (t/dur-time this)))
+  (micros    [this] (.toMicros  (t/dur-unit this) (t/dur-time this)))
+  (nanos     [this] (.toNanos   (t/dur-unit this) (t/dur-time this)))
   Map
-  (duration-time [this] (long (or (get this :time) (get this "time"))))
-  (duration-unit [this] (resolve-time-unit
-                          (or (get this :unit) (get this "unit"))))
+  (duration? [this] (if-let [t (or (get this :time) (get this "time"))]
+                      (if-let [u (or (get this :unit) (get this "unit"))]
+                        (and (integer? t)
+                          (try (resolve-time-unit u) true
+                            (catch IllegalArgumentException e false)))
+                        false)
+                      false))
+  (dur-time  [this] (long (or (get this :time) (get this "time"))))
+  (dur-unit  [this] (resolve-time-unit
+                      (or (get this :unit) (get this "unit"))))
+  (days      [this] (.toDays    (t/dur-unit this) (t/dur-time this)))
+  (hours     [this] (.toHours   (t/dur-unit this) (t/dur-time this)))
+  (minutes   [this] (.toMinutes (t/dur-unit this) (t/dur-time this)))
+  (seconds   [this] (.toSeconds (t/dur-unit this) (t/dur-time this)))
+  (millis    [this] (.toMillis  (t/dur-unit this) (t/dur-time this)))
+  (micros    [this] (.toMicros  (t/dur-unit this) (t/dur-time this)))
+  (nanos     [this] (.toNanos   (t/dur-unit this) (t/dur-time this)))
   String
-  (duration-time [this] (if-let [[_ strnum unit] (re-matches #"([0-9]+)([a-zA-Z]+)" this)]
-                          (Long/parseLong strnum)))
-  (duration-unit [this] (if-let [[_ strnum unit] (re-matches #"([0-9]+)([a-zA-Z]+)" this)]
-                          (resolve-time-unit unit))))
+  (duration? [this] (and
+                      (try (t/dur-time this) true (catch NumberFormatException    e false))
+                      (try (t/dur-unit this) true (catch IllegalArgumentException e false))))
+  (dur-time  [this] (if-let [[_ strnum unit] (re-matches #"([0-9]+)([a-zA-Z]+)" this)]
+                      (Long/parseLong strnum)))
+  (dur-unit  [this] (if-let [[_ strnum unit] (re-matches #"([0-9]+)([a-zA-Z]+)" this)]
+                      (resolve-time-unit unit)))
+  (days      [this] (.toDays    (t/dur-unit this) (t/dur-time this)))
+  (hours     [this] (.toHours   (t/dur-unit this) (t/dur-time this)))
+  (minutes   [this] (.toMinutes (t/dur-unit this) (t/dur-time this)))
+  (seconds   [this] (.toSeconds (t/dur-unit this) (t/dur-time this)))
+  (millis    [this] (.toMillis  (t/dur-unit this) (t/dur-time this)))
+  (micros    [this] (.toMicros  (t/dur-unit this) (t/dur-time this)))
+  (nanos     [this] (.toNanos   (t/dur-unit this) (t/dur-time this))))
 
 
 (defn make-duration
@@ -153,8 +195,16 @@
   (let [time (long time)
         unit (resolve-time-unit unit)]
     (reify t/IDuration
-      (duration-time [_] time)
-      (duration-unit [_] unit))))
+      (duration? [_] true)
+      (dur-time  [_] time)
+      (dur-unit  [_] unit)
+      (days      [_] (.toDays    unit time))
+      (hours     [_] (.toHours   unit time))
+      (minutes   [_] (.toMinutes unit time))
+      (seconds   [_] (.toSeconds unit time))
+      (millis    [_] (.toMillis  unit time))
+      (micros    [_] (.toMicros  unit time))
+      (nanos     [_] (.toNanos   unit time)))))
 
 
 (defn parse-duration
@@ -229,8 +279,8 @@
 
 
 (defmacro with-thread-name
-  "Execute body of code after setting current thread to the given name. Restore old name after the lexical scope is
-  over. New threads launched from the body of code will not inherit the specified name."
+  "Execute body of code after setting current thread name to the given name. Restore old name after the lexical scope is
+  over. New threads spawned from the body of code will not inherit the specified name."
   [thread-name & body]
   `(let [old-name# (get-thread-name)]
      (try
@@ -238,3 +288,13 @@
        ~@body
        (finally
          (set-thread-name! old-name#)))))
+
+
+(defmacro with-thread-name-prefix
+  "Execute body of code after setting current thread name to the given prefix appended with thread ID. Restore old name
+  after the lexical scope is over. New threads spawned from the body of code will not inherit the specified prefix."
+  [thread-name-prefix & body]
+  `(with-thread-name (->> ^Thread (Thread/currentThread)
+                       (.getId)
+                       (str thread-name-prefix))
+     ~@body))

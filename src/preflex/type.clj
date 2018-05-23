@@ -21,7 +21,7 @@
   * SampleMetrics     - stats for sample metrics data"
   (:import
     [java.util List Map]
-    [java.util.concurrent TimeUnit]))
+    [java.util.concurrent ThreadPoolExecutor TimeUnit]))
 
 
 ;; ----- invokable -----
@@ -46,8 +46,16 @@
 
 
 (defprotocol IDuration
-  (^long     duration-time [this] "Time duration")
-  (^TimeUnit duration-unit [this] "Time unit"))
+  (^boolean  duration? [this] "Return true if valid duration, false otherwise")
+  (^long     dur-time  [this] "Return the duration time")
+  (^TimeUnit dur-unit  [this] "Return the duration time unit")
+  (^long     days      [this] "Convert duration to number of days")
+  (^long     hours     [this] "Convert duration to number of hours")
+  (^long     minutes   [this] "Convert duration to number of minutes")
+  (^long     seconds   [this] "Convert duration to number of seconds")
+  (^long     millis    [this] "Convert duration to number of milliseconds")
+  (^long     micros    [this] "Convert duration to number of micros")
+  (^long     nanos     [this] "Convert duration to number of nanoseconds"))
 
 
 ;; ----- resilience -----
@@ -56,6 +64,10 @@
 (defprotocol IBoundedQueueInfo
   (queue-capacity [this] "Return maximum capacity of a bounded queue")
   (queue-size     [this] "Return the current size of a bounded queue"))
+
+
+(defprotocol IThreadPool
+  (^ThreadPoolExecutor thread-pool [this] "Return the associated ThreadPoolExecutor instance"))
 
 
 (defprotocol ISemaphore

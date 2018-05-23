@@ -7,7 +7,7 @@
 ;   You must not remove this notice, or any other, from this software.
 
 
-(ns preflex.error)
+(ns preflex.resilient.error)
 
 
 (def managed-failure ::managed-failure)

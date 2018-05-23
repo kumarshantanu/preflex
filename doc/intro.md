@@ -10,7 +10,7 @@ and observability of your application using instrumentation, metrics and safety 
 Rest of the document assumes the following namespace aliases:
 
 ```clojure
-(require '[preflex.core            :as p])
+(require '[preflex.resilient       :as r])
 (require '[preflex.instrument      :as i])
 (require '[preflex.instrument.jdbc :as j])
 (require '[preflex.metrics         :as m])
@@ -24,13 +24,13 @@ Preflex exposes API to create bounded thread pools and to invoke tasks on them.
 
 ```clojure
 ;; create a thread pool of maximum 10 threads and queue-size of 20
-(def tp (p/make-bounded-thread-pool 10 20))
+(def tp (r/make-bounded-thread-pool 10 20))
 
 ;; execute a task (task is a no-argument fn) via the thread pool, returning task result
-(p/via-thread-pool tp {:task-timeout [1000 :millis]} #(+ 40 50))
+(r/via-thread-pool tp {:task-timeout [1000 :millis]} #(+ 40 50))
 
 ;; only submit a task to the thread pool returning a future
-(deref (p/future-call-via tp {:on-task-submit println} #(+ 40 50)))
+(deref (r/future-call-via tp {:on-task-submit println} #(+ 40 50)))
 ```
 
 
@@ -40,23 +40,23 @@ A counting semaphore is useful to restrict the total number of concurrent tasks 
 
 ```clojure
 ;; restrict total permits to 10
-(def sem (p/make-counting-semaphore 10))
+(def sem (r/make-counting-semaphore 10))
 
 ;; only 10 such calls can happen simultaneously at any given time
-(p/via-semaphore sem #(+ 40 50))
+(r/via-semaphore sem #(+ 40 50))
 ```
 
 Sometimes, a binary semaphore may be a clever way to avoid a mutex typically for idempotent side effects.
 
 ```clojure
 ;; allows only one permit, effectively behaving like a lock
-(def bi-sem (p/make-binary-semaphore))
+(def bi-sem (r/make-binary-semaphore))
 
 ;; use just like counting-semaphore (see example above)
-(p/via-semaphore bi-sem #(+ 40 50))
+(r/via-semaphore bi-sem #(+ 40 50))
 
 ;; specify a rejection handler to avoid exception when permit/lock not acquired
-(p/via-semaphore bi-sem {:on-semaphore-reject (constantly nil)} #(+ 40 50))
+(r/via-semaphore bi-sem {:on-semaphore-reject (constantly nil)} #(+ 40 50))
 ```
 
 
@@ -66,16 +66,16 @@ A circuit breaker detects repeated faults and cuts off execution in that context
 
 ```clojure
 ;; detect failure when there are total 20 errors in last 10 seconds
-(def fd (p/make-rolling-fault-detector 20 10))
+(def fd (r/make-rolling-fault-detector 20 [10 :seconds]))
 
 ;; allow calls only once every 5 seconds
-(def rr (p/make-half-open-retry-resolver 5))
+(def rr (r/make-half-open-retry-resolver [5 :seconds]))
 
 ;; create the circuit breaker based on the fault detector and the retry resolver
-(def cb (p/make-circuit-breaker fd rr))
+(def cb (r/make-circuit-breaker fd rr))
 
 ;; execute potentially-faulty task via circuit breaker
-(p/via-circuit-breaker cb #(if (even? (System/currentTimeMillis)) (+ 40 50) (throw (Exception. "test"))))
+(r/via-circuit-breaker cb #(if (even? (System/currentTimeMillis)) (+ 40 50) (throw (Exception. "test"))))
 ```
 
 
@@ -91,7 +91,7 @@ and `false` as failure. See the example below:
     (println "Success")
     (println "Failure")))
 
-(p/via-success-failure-tracker track-status #(+ 40 50))
+(r/via-success-failure-tracker track-status #(+ 40 50))
 ```
 
 Preflex also has built-in transient metrics collection utility for quick reporting. See another example below:
@@ -104,9 +104,9 @@ Preflex also has built-in transient metrics collection utility for quick reporti
   (t/record! status-metrics status?))
 
 ;; execution operations
-(p/via-success-failure-tracker status-tracker #(+ 40 50))  ; success
-(p/via-success-failure-tracker status-tracker #(* 80 90))  ; success
-(p/via-success-failure-tracker status-tracker #(throw (Exception. "test")))  ; failure
+(r/via-success-failure-tracker status-tracker #(+ 40 50))  ; success
+(r/via-success-failure-tracker status-tracker #(* 80 90))  ; success
+(r/via-success-failure-tracker status-tracker #(throw (Exception. "test")))  ; failure
 
 ;; retrieve the metrics
 (deref status-metrics)
@@ -125,7 +125,7 @@ using an arity-2 fn as shown below:
     (println "Success in" latency "ms")
     (println "Failure in" latency "ms")))
 
-(p/via-latency-tracker track-latency #(+ 40 50))
+(r/via-latency-tracker track-latency #(+ 40 50))
 ```
 
 Preflex offers rich latency tracking utility for better reporting. See the example below:
@@ -138,8 +138,8 @@ Preflex offers rich latency tracking utility for better reporting. See the examp
   (t/record! latency-metrics latency))
 
 ;; execute operations
-(p/via-latency-tracker latency-tracker #(+ 40 50))
-(p/via-latency-tracker latency-tracker #(+ 80 90))
+(r/via-latency-tracker latency-tracker #(+ 40 50))
+(r/via-latency-tracker latency-tracker #(+ 80 90))
 
 ;; retrieve the metrics
 (deref latency-metrics)
@@ -153,7 +153,7 @@ Preflex offers a way to fall back on alternate operations.
 
 ```clojure
 ; if the database call errors out, read from lossy summary cache
-(p/via-fallback [#(read-from-summary-cache id)] #(read-from-database id))
+(r/via-fallback [#(read-from-summary-cache id)] #(read-from-database id))
 ```
 
 
@@ -164,7 +164,7 @@ below we instrument a thread-pool to capture the timestamp of every stage a task
 
 ```clojure
 ;; create a thread pool of maximum 10 threads and queue-size of 20
-(def tp (p/make-bounded-thread-pool 10 20))
+(def tp (r/make-bounded-thread-pool 10 20))
 
 ;; define an invoker to execute the task (submitted to the thread pool) as a no-arg fn
 (defn invoker [g context] (println @context) (g))

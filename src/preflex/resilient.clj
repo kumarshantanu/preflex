@@ -7,25 +7,25 @@
 ;   You must not remove this notice, or any other, from this software.
 
 
-(ns preflex.core
+(ns preflex.resilient
   "Resilience abstractions with backpressure:
   * Bounded thread pool - (compared to unbounded thread pool) helps keep computation and memory consumption in check
   * Circuit breaker     - cuts off execution when a resource is unavailable, and resumes when it is available again
   * Semaphore           - limits total number of clients competing for resources
   * Fallback            - When primary computation fails, fall back to standby"
   (:require
-    [preflex.impl      :as im]
-    [preflex.internal  :as in]
-    [preflex.invokable :as iv]
-    [preflex.error     :as e]
-    [preflex.metrics   :as m]
-    [preflex.type      :as t]
-    [preflex.util      :as u])
+    [preflex.resilient.error  :as e]
+    [preflex.resilient.impl   :as im]
+    [preflex.internal         :as in]
+    [preflex.invokable        :as iv]
+    [preflex.metrics          :as m]
+    [preflex.type             :as t]
+    [preflex.util             :as u])
   (:import
     [java.util.concurrent
      ArrayBlockingQueue ExecutorService Future Semaphore ThreadPoolExecutor TimeUnit
      ExecutionException RejectedExecutionException TimeoutException]
-    [preflex.impl RetryState]))
+    [preflex.resilient.impl RetryState]))
 
 
 ;; ----- bounded thread pool -----
@@ -49,8 +49,8 @@
                                                  :as options}]
     (let [thread-pool (doto (->> (ArrayBlockingQueue. (int queue-capacity))
                               (ThreadPoolExecutor. core-thread-count max-thread-count
-                                (t/duration-time keep-alive-duration)
-                                (t/duration-unit keep-alive-duration)))
+                                (t/dur-time keep-alive-duration)
+                                (t/dur-unit keep-alive-duration)))
                         (.allowCoreThreadTimeOut (boolean core-thread-timeout?))
                         (.prestartAllCoreThreads))]
       (im/->BoundedThreadPool (in/as-str thread-pool-name) thread-pool (int queue-capacity))))
@@ -152,7 +152,7 @@
           (on-task-submit ctx)
           (try
             (if task-timeout
-              (try (.get future (t/duration-time task-timeout) (t/duration-unit task-timeout))
+              (try (.get future (t/dur-time task-timeout) (t/dur-unit task-timeout))
                 (catch TimeoutException e
                   (on-task-timeout ctx e)))
               (.get future))
@@ -251,19 +251,22 @@
 
 
 (defn make-discrete-fault-detector
-  "Create a fault detector based on threshold specified as connected-until-errcount errors in
-  connected-until-duration discrete milliseconds. This follows the X errors in Y discrete duration measurement."
-  ([^long connected-until-errcount ^long connected-until-duration]
+  "Create a fault detector based on threshold specified as connected-until-errcount errors in connected-until-duration
+  (converted to millis) time. This follows the X errors in Y discrete duration measurement."
+  ([^long connected-until-errcount connected-until-duration]
     (make-discrete-fault-detector connected-until-errcount connected-until-duration {}))
-  ([^long connected-until-errcount ^long connected-until-duration {:keys [now-finder]
-                                                                   :or {now-finder u/now-millis}}]
-    (let [fault-counter (m/make-integer-counter :count)
-          start-tstamp  (volatile! (now-finder))
+  ([^long connected-until-errcount connected-until-duration {:keys [now-millis-finder]
+                                                             :or {now-millis-finder u/now-millis}}]
+    (in/expected integer?    "error-count as a positive integer" connected-until-errcount)
+    (in/expected u/duration? "duration object e.g. [10 :millis]" connected-until-duration)
+    (let [conn-until-ms (t/millis connected-until-duration)
+          fault-counter (m/make-integer-counter :count)
+          start-tstamp  (volatile! (now-millis-finder))
           reset-timer   #(locking fault-counter
                            (t/reinit! fault-counter)
-                           (vreset! start-tstamp (now-finder)))
+                           (vreset! start-tstamp (now-millis-finder)))
           refresh-timer #(let [ts @start-tstamp]
-                           (when (>= ^long (now-finder) (unchecked-add ^long ts connected-until-duration))
+                           (when (>= ^long (now-millis-finder) (unchecked-add ^long ts ^long conn-until-ms))
                              (reset-timer)))]
       (reify
         t/IMetricsRecorder   (record! [_] (throw (IllegalArgumentException. "This should never be called")))
@@ -285,55 +288,64 @@
 
 (defn make-rolling-fault-detector
   "Create a protocols-instance that detects faults based on threshold specified as connected-until-errcount errors in
-  connected-until-duration. This follows the X errors in Y duration measurement.
+  connected-until-duration (converted to millis) time. This follows the X errors in Y duration measurement.
   See also: preflex.metrics/make-rolling-integer-counter"
-  ([^long connected-until-errcount ^long connected-until-duration]
+  ([^long connected-until-errcount connected-until-duration]
     (make-rolling-fault-detector connected-until-errcount connected-until-duration {}))
-  ([^long connected-until-errcount ^long connected-until-duration {:keys [^long bucket-interval]
-                                                                   :or {bucket-interval 1000}
-                                                                   :as options}]
-    (when (or (not= 0 (rem connected-until-duration bucket-interval))
-            (<= (quot connected-until-duration bucket-interval) 0))
-      (in/expected "connected-until-duration to be a multiple of bucket-interval"
-        {:connected-until connected-until-duration
-         :bucket-interval bucket-interval}))
-    (let [bucket-count  (quot connected-until-duration bucket-interval)
-          fault-counter (m/make-rolling-integer-counter :count (inc bucket-count)
-                          (merge options {:bucket-interval bucket-interval}))]
-      (reify
-        t/IMetricsRecorder   (record! [_] (throw (IllegalArgumentException. "This should never be called")))
-                             (record! [_ status?] (when-not status?
-                                                    (t/record! fault-counter)))
-        t/IReinitializable   (reinit! [_] (t/reinit! fault-counter))
-        clojure.lang.Counted (count   [_] (count fault-counter))
-        clojure.lang.IDeref  (deref   [_] (deref fault-counter))
-        t/IFaultDetector     (fault?  [_] (>= (count fault-counter) connected-until-errcount))))))
+  ([^long connected-until-errcount connected-until-duration {:keys [bucket-interval]
+                                                             :or {bucket-interval [1000 :millis]}
+                                                             :as options}]
+    (in/expected integer?    "error-count as a positive integer" connected-until-errcount)
+    (in/expected u/duration? "duration object e.g. [10 :millis]" connected-until-duration)
+    (in/expected u/duration? "duration object e.g. [10 :millis]" bucket-interval)
+    (let [connected-until-ms (t/millis connected-until-duration)
+          bucket-interval-ms (t/millis bucket-interval)]
+      (when (or (not= 0 (rem ^long connected-until-ms ^long bucket-interval-ms))
+              (<= (quot ^long connected-until-ms ^long bucket-interval-ms) 0))
+        (in/expected "connected-until-duration to be a multiple of bucket-interval"
+          {:connected-until connected-until-duration
+           :bucket-interval bucket-interval}))
+      (let [bucket-count  (quot ^long connected-until-ms ^long bucket-interval-ms)
+            fault-counter (m/make-rolling-integer-counter :count (inc bucket-count)
+                            (merge options {:bucket-interval bucket-interval-ms}))]
+        (reify
+          t/IMetricsRecorder   (record! [_] (throw (IllegalArgumentException. "This should never be called")))
+                               (record! [_ status?] (when-not status?
+                                                      (t/record! fault-counter)))
+          t/IReinitializable   (reinit! [_] (t/reinit! fault-counter))
+          clojure.lang.Counted (count   [_] (count fault-counter))
+          clojure.lang.IDeref  (deref   [_] (deref fault-counter))
+          t/IFaultDetector     (fault?  [_] (>= (count fault-counter) connected-until-errcount)))))))
 
 
 (defn make-half-open-retry-resolver
   "Make a retry-resolver that allows specified number of retries per every half-open window. Retries happen
   consecutively at the beginning of every half-open window. An 'open' window precedes all half-open windows.
+  Durations are converted to millis for time calculation.
   Options:
-    :open-millis (int, default: same as half-open-millis) 'open' period preceding the half-open periods
-    :retry-times (int, default: 1) max number of times to retry in every half-open window"
-  ([^long half-open-duration]
+    :now-millis-finder (fn []) -> long  function that returns current time in millis
+    :open-duration (duration, default: half-open-duration) 'open' period preceding the half-open periods
+    :retry-times   (int, default: 1) max number of times to retry in every half-open window"
+  ([half-open-duration]
     (make-half-open-retry-resolver half-open-duration {}))
-  ([^long half-open-duration {:keys [now-finder
-                                     open-duration
-                                     retry-times]
-                            :or {now-finder    u/now-millis
-                                 open-duration half-open-duration
-                                 retry-times   1}
-                            :as options}]
-    (in/expected integer? "arg half-open-duration to be an integer" half-open-duration)
-    (in/expected integer? "option :open-duration to be an integer" open-duration)
+  ([half-open-duration {:keys [now-millis-finder
+                               open-duration
+                               retry-times]
+                      :or {now-millis-finder u/now-millis
+                           open-duration     half-open-duration
+                           retry-times       1}
+                      :as options}]
+    (in/expected u/duration? "arg half-open-duration to be a duration e.g. [10 :millis]" half-open-duration)
+    (in/expected u/duration? "option :open-duration to be a duration e.g. [10 :millis]" open-duration)
     (in/expected #(and (integer? %) (pos? ^long %)) "option :retry-times to be a positive integer" retry-times)
-    (let [init-fn #(let [ts (now-finder)] (im/->RetryState
-                                            ts    ; :retry-init-ts
-                                            false ; :open-elapsed?
-                                            ts    ; :last-retry-ts
-                                            0     ; :retry-counter
-                                            ))
+    (let [half-open-millis (t/millis half-open-duration)
+          open-millis      (t/millis open-duration)
+          init-fn #(let [ts (now-millis-finder)] (im/->RetryState
+                                                   ts    ; :retry-init-ts
+                                                   false ; :open-elapsed?
+                                                   ts    ; :last-retry-ts
+                                                   0     ; :retry-counter
+                                                   ))
           v-state (volatile! (init-fn))
           ^Semaphore
           reinit-lock (Semaphore. 1 false)  ; binary semaphore
@@ -357,10 +369,10 @@
                                            (try
                                              (locking v-state  ; lock against re-init (see `reinit!`)
                                                (let [^RetryState state @v-state
-                                                     ts (now-finder)]
+                                                     ts (now-millis-finder)]
                                                  (if (:open-elapsed? state)
                                                    ;; half-open window may have elapsed, so test and shift to next one
-                                                   (if (>= (- ^long ts (.-last-retry-ts state)) half-open-duration)
+                                                   (if (>= (- ^long ts (.-last-retry-ts state)) ^long half-open-millis)
                                                      (h-shift ts)  ; shift to the next half-open window and return true
                                                      (let [rc (.-retry-counter state)]
                                                        (if (< rc ^long retry-times)
@@ -370,7 +382,7 @@
                                                            true)
                                                          false)))
                                                    ;; open period is not known to be elapsed, so test it
-                                                   (if (>= (- ^long ts (.-retry-init-ts state)) ^long open-duration)
+                                                   (if (>= (- ^long ts (.-retry-init-ts state)) ^long open-millis)
                                                      (h-shift ts)  ; shift to half-open and return true
                                                      false))))
                                              (finally

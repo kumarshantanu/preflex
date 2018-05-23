@@ -1,4 +1,4 @@
-# Change Log
+# preflex Todo and Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
 ## TODO
@@ -7,11 +7,54 @@ All notable changes to this project will be documented in this file. This change
   - Protocl `ITerminable` with `terminate` and `terminated?` fns
   - Have the stateful abstractions (thread pool, semaphore etc.) implement `ITerminable`
 - Resilience primitives
-  - Move to namespace `preflex.resilience`
   - Retry
   - Throttle
-- Hystrix emulation
-  - Command
+- Instrumentation
+  - http://micrometer.io/
+  - Out of the box Class loader, Garbage collection, processor utilization, thread pools instrumentation
+- Tests
+  - Tests for command metrics
+  - Tests for thread-pool metrics
+  - Tests for emitting metrics and visualization with Hystrix-dashboard
+
+
+## 0.4.0-SNAPSHOT / 2018-May-??
+### Added
+- Add Hystrix-metrics emulation helpers
+  - Command metrics
+  - Thread pool metrics
+  - Metrics collectors for use with resilience primitives
+  - Metrics reporters for emitting metrics data
+  - Tests for collecting and reporting metrics
+
+
+### Changed
+- Resilience primitives
+  - [BREAKING CHANGE] Move namespaces
+    - `preflex.core`  to `preflex.resilient`
+    - `preflex.error` to `preflex.resilient.error`
+    - `preflex.impl`  to `preflex.resilient.impl`
+  - [BREAKING CHANGE] Overhaul duration and time arguments in `preflex.resilient` namespace
+    - In function `preflex.resilient/make-discrete-fault-detector`
+      - Change argument `connected-until-duration` to duration instead of milliseconds
+      - Rename option `:now-finder` to `:now-millis-finder` - time calculation in milliseconds
+    - In function `preflex.resilient/make-rolling-fault-detector`
+      - Change argument `connected-until-duration` from milliseconds to duration
+      - Change option `:bucket-interval` from milliseconds to duration
+    - In function `preflex.resilient/make-half-open-retry-resolver`
+      - Change argument `half-open-duration` from milliseconds to duration
+      - Rename option `:now-finder` to `:now-millis-finder` - time calculation in milliseconds
+      - Change option `:open-duration` from milliseconds to duration
+- [BREAKING CHANGE] Update `preflex.type.IDuration` abstraction
+  - Add `duration?` protocol function
+  - Rename protocol functions `duration-time` to `dur-time` and `duration-unit` to `dur-unit`
+  - Add protocol functions `days`, `hours`, `minutes`, `seconds`, `millis`, `micros`, `nanos`
+- JDBC Instrumentation
+  - Applicable to `preflex.instrument.jdbc/instrument-connection` and `preflex.instrument.jdbc/instrument-datasource`
+  - [BREAKING CHANGE] Connection event wrapper (option `:conn-creation-wrapper`) now handles create and close events
+    - Useful to find number of busy connections
+  - [BREAKING CHANGE] Statement event wrapper (option `:stmt-creation-wrapper`) now handles create and close events
+    - Useful to find number of busy statements
 
 
 ## 0.3.0 / 2017-August-28
