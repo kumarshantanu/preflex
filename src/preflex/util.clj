@@ -279,8 +279,8 @@
 
 
 (defmacro with-thread-name
-  "Execute body of code after setting current thread to the given name. Restore old name after the lexical scope is
-  over. New threads launched from the body of code will not inherit the specified name."
+  "Execute body of code after setting current thread name to the given name. Restore old name after the lexical scope is
+  over. New threads spawned from the body of code will not inherit the specified name."
   [thread-name & body]
   `(let [old-name# (get-thread-name)]
      (try
@@ -288,3 +288,13 @@
        ~@body
        (finally
          (set-thread-name! old-name#)))))
+
+
+(defmacro with-thread-name-prefix
+  "Execute body of code after setting current thread name to the given prefix appended with thread ID. Restore old name
+  after the lexical scope is over. New threads spawned from the body of code will not inherit the specified prefix."
+  [thread-name-prefix & body]
+  `(with-thread-name (->> ^Thread (Thread/currentThread)
+                       (.getId)
+                       (str thread-name-prefix))
+     ~@body))
